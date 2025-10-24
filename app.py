@@ -10,7 +10,7 @@ app = Flask(__name__)
 
 # Neonデータベース接続設定（環境変数から読み込み）
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/dbname")
-TABLE_NAME = "posts-2b6a83"
+TABLE_NAME = "posts_2b6a83"  # ハイフンをアンダースコアに変更
 
 # データベース接続関数
 def get_db_connection():
