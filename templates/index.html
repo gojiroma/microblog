@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,18 +13,22 @@
             padding: 20px;
             position: relative;
         }
+
         #input-area {
             margin-bottom: 20px;
         }
+
         #post-input {
             width: 100%;
             padding: 10px;
             font-size: 16px;
         }
+
         #posts {
             list-style: none;
             padding: 0;
         }
+
         .post {
             border: 1px solid #ddd;
             padding: 10px;
@@ -31,6 +36,7 @@
             border-radius: 5px;
             position: relative;
         }
+
         .post:hover::after {
             content: attr(data-time);
             position: absolute;
@@ -39,6 +45,7 @@
             font-size: 12px;
             color: #666;
         }
+
         #copy-url-btn {
             position: fixed;
             bottom: 20px;
@@ -51,11 +58,13 @@
             cursor: pointer;
             z-index: 1000;
         }
+
         #copy-url-btn:hover {
             background-color: #0056b3;
         }
     </style>
 </head>
+
 <body>
     <div id="input-area">
         <input type="text" id="post-input" placeholder="つぶやきを入力..." autocomplete="off">
@@ -71,10 +80,18 @@
 
         // トークン取得関数
         function getTokenFromCookie() {
+            // URLパラメータからトークンを取得
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlToken = urlParams.get('token');
+            if (urlToken) {
+                return urlToken;
+            }
+            // Cookieからトークンを取得
             const cookies = document.cookie.split(';').map(cookie => cookie.trim());
             const tokenCookie = cookies.find(cookie => cookie.startsWith('token='));
             return tokenCookie ? tokenCookie.split('=')[1] : '';
         }
+
 
         // 全件取得関数
         async function fetchAllPosts() {
@@ -160,4 +177,5 @@
         fetchAllPosts();
     </script>
 </body>
+
 </html>

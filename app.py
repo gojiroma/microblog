@@ -1,16 +1,15 @@
-import os
 from flask import Flask, request, jsonify, render_template, make_response
+import os
 import psycopg2
 from psycopg2.extras import DictCursor
 import secrets
 import re
-from datetime import datetime
 
 app = Flask(__name__)
 
 # Neonデータベース接続設定（環境変数から読み込み）
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/dbname")
-TABLE_NAME = "posts_2b6a83"  # ハイフンをアンダースコアに変更
+TABLE_NAME = "posts_2b6a83"
 
 # データベース接続関数
 def get_db_connection():
@@ -47,8 +46,13 @@ create_table()
 def generate_token():
     return secrets.token_hex(32)
 
-# トークン取得関数
+# トークン取得関数（URLパラメータを優先）
 def get_token():
+    # URLパラメータからトークンを取得
+    token = request.args.get("token")
+    if token:
+        return token
+    # Cookieからトークンを取得
     token = request.cookies.get("token")
     if not token:
         token = generate_token()
@@ -73,7 +77,7 @@ def search_posts(token, query):
             return s.lower()
 
         # 検索クエリ生成
-        converted_query = f"%{kana_convert(width_convert(case_convert(query)))}%"
+        converted_query = f"%{kana_convert(width_convert(case_convert(query))) }%"
         cursor.execute(
             f"SELECT * FROM {TABLE_NAME} WHERE token = %s AND LOWER(content) LIKE LOWER(%s) ORDER BY created_at DESC",
             (token, converted_query)
