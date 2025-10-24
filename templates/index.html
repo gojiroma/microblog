@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🐤%3C/text%3E%3C/svg%3E"
+        type="image/svg+xml">
+    <title>マイクロブログ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        #input-area {
+            margin-bottom: 20px;
+        }
+
+        #post-input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        #posts {
+            list-style: none;
+            padding: 0;
+        }
+
+        .post {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            position: relative;
+        }
+
+        .post:hover::after {
+            content: attr(data-time);
+            position: absolute;
+            right: 10px;
+            top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="input-area">
+        <input type="text" id="post-input" placeholder="つぶやきを入力..." autocomplete="off">
+    </div>
+    <ul id="posts"></ul>
+
+    <script>
+        const input = document.getElementById('post-input');
+        const postsList = document.getElementById('posts');
+
+        // 検索関数
+        async function searchPosts(query) {
+            const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
+            const posts = await response.json();
+            renderPosts(posts);
+        }
+
+        // 投稿関数
+        async function postContent(content) {
+            await fetch('/post', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ content }),
+            });
+            searchPosts(''); // 投稿後に全て表示
+            input.value = '';
+        }
+
+        // つぶやき表示関数
+        function renderPosts(posts) {
+            postsList.innerHTML = posts.map(post =>
+                `<li class="post" data-time="${new Date(post.created_at).toLocaleString()}">${post.content}</li>`
+            ).join('');
+        }
+
+        // 入力イベント
+        input.addEventListener('input', (e) => {
+            searchPosts(e.target.value);
+        });
+
+        // Enterキーで投稿
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && input.value.trim()) {
+                postContent(input.value.trim());
+            }
+        });
+
+        // 初期表示
+        searchPosts('');
+    </script>
+</body>
+
+</html>
