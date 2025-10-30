@@ -157,18 +157,19 @@
         <input type="text" id="post-input" placeholder="つぶやきを入力..." autocomplete="off">
     </div>
     <ul id="posts"></ul>
-    <button id="multi-fab" title="メニュー">☰</button>
+    <button id="copy-url-btn" title="URLを表示">🔗</button>
+    <button id="download-csv-btn" title="データをダウンロード">📥</button>
 
-    <!-- 多機能モーダル -->
-    <div id="multiModal" class="modal">
+    <!-- モーダル -->
+    <div id="urlModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <h3>メニュー</h3>
-            <div id="multi-modal-body"><!-- ここに各機能を追加していく --></div>
+            <h3>引き継ぎURL</h3>
+            <a id="shareUrl" target="_blank" style="word-break: break-all;"></a>
+            <div id="qrcode"></div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // パステルカラーの配列（ライトモード用）
         const lightPastelColors = [
@@ -191,9 +192,9 @@
         window.addEventListener('load', applyRandomPastelColor);
         const input = document.getElementById('post-input');
         const postsList = document.getElementById('posts');
-        const multiFab = document.getElementById('multi-fab');
-        const multiModal = document.getElementById('multiModal');
-        const multiModalBody = document.getElementById('multi-modal-body');
+        const copyUrlBtn = document.getElementById('copy-url-btn');
+        const downloadCsvBtn = document.getElementById('download-csv-btn');
+        const modal = document.getElementById('urlModal');
         const span = document.getElementsByClassName('close')[0];
         const shareUrlElement = document.getElementById('shareUrl');
         let allPosts = [];
@@ -308,6 +309,7 @@
             shareUrlElement.href = url;
             shareUrlElement.textContent = url;
             document.getElementById('qrcode').innerHTML = `<img src="https://idy.vercel.app/q/${encodeURIComponent(url)}" alt="QRコード" style="max-width: 200px;">`;
+            modal.style.display = 'block';
         }
         // CSVダウンロード関数
         function downloadCsv() {
@@ -355,33 +357,20 @@
                 }
             }
         });
-        // FABクリックでモーダル表示
-        multiFab.addEventListener('click', showMultiModal);
-        function showMultiModal() {
-            // モーダルの機能エリア描画(初期状態=URL等)
-            drawMultiModalContent();
-            multiModal.style.display = 'block';
+        // ボタンクリックでURL表示
+        copyUrlBtn.addEventListener('click', showUrlWithToken);
+        // ボタンクリックでCSVダウンロード
+        downloadCsvBtn.addEventListener('click', downloadCsv);
+        // モーダルを閉じる
+        span.onclick = function () {
+            modal.style.display = 'none';
         }
-        function drawMultiModalContent() {
-            // 仮配置（旧showUrlWithTokenなど移植予定）
-            multiModalBody.innerHTML = `
-      <div style="margin-bottom:20px; text-align:center;">
-        <b>引き継ぎURL</b><br><a id='shareUrl' target='_blank' style='word-break: break-all;'></a>
-        <div id='qrcode'></div>
-      </div>
-      <div id="csv-btn-area" style="margin-bottom:20px; text-align:center;"></div>
-      <div id="chart-area" style="margin-bottom:10px; text-align:center;"></div>
-    `;
-            // 元のURL/Qrロジック呼び出し
-            setTimeout(showUrlWithToken, 10);
-            setTimeout(() => {
-                document.getElementById('csv-btn-area').innerHTML = '<button id="download-csv-modal">CSVダウンロード</button>';
-                document.getElementById('download-csv-modal').onclick = downloadCsv;
-            }, 20);
+        // モーダル外をクリックで閉じる
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
         }
-        // モーダル閉じる処理（背景/×クリック）
-        span.onclick = function () { multiModal.style.display = 'none'; }
-        window.onclick = function (event) { if (event.target == multiModal) { multiModal.style.display = 'none'; } }
         // 初期表示
         if (!postOnlyMode) {
             fetchAllPosts();
