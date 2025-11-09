@@ -415,6 +415,11 @@
         let keywordSearchInitialized = false;
         let carouselObserver = null;
 
+        // タイムゾーンを考慮した日付処理関数
+        function toJST(date) {
+            return new Date(date.getTime() + 9 * 60 * 60 * 1000);
+        }
+
         // Normalization functions
         function kanaConvert(s) {
             return s.replace(/[ァ-ヴ]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
@@ -428,6 +433,7 @@
         function normalize(s) {
             return caseConvert(widthConvert(kanaConvert((s || '').trim())));
         }
+
         // Helper function to escape special characters for use in IDs
         function escapeId(s) {
             return s.replace(/[^a-z0-9]/g, function (s) {
@@ -435,6 +441,7 @@
                 return (c === 32 ? '-' : '__' + c.toString(16));
             });
         }
+
         // Helper function to escape HTML
         function escapeHTML(s) {
             return String(s)
@@ -444,6 +451,7 @@
                 .replace(/\"/g, '&quot;')
                 .replace(/'/g, '&#39;');
         }
+
         // Function to add a keyword
         function addKeyword(keyword) {
             const input = document.getElementById('keywordInput');
@@ -456,6 +464,7 @@
                 input.value = '';
             }
         }
+
         // Fetch data from say.poet.blue API
         async function fetchDataFromAPI() {
             try {
@@ -488,6 +497,7 @@
                 alert('データ取得エラー: ' + error.message);
             }
         }
+
         // Refresh button
         document.getElementById('refreshBtn').addEventListener('click', fetchDataFromAPI);
 
@@ -575,11 +585,16 @@
 
         function processData(data) {
             memos = data.map(row => row.メモ内容 || '').filter(Boolean);
-            timestamps = data.map(row => new Date(row.タイムスタンプ)).filter(t => !isNaN(t));
+            timestamps = data.map(row => {
+                const date = new Date(row.タイムスタンプ);
+                return toJST(date); // JSTに変換
+            }).filter(t => !isNaN(t));
+
             if (timestamps.length === 0) {
                 alert('有効なデータがありません');
                 return;
             }
+
             try { localStorage.setItem('dashboardRaw', JSON.stringify(data)); } catch (_) { }
             const { dailyCounts, hourlyCounts, weekdayCounts } = analyzeData();
             renderCharts(dailyCounts, hourlyCounts, weekdayCounts);
@@ -589,14 +604,25 @@
         }
 
         function analyzeData() {
-            const dailyCounts = {}, hourlyCounts = Array(24).fill(0),
-                weekdayCounts = { '月': 0, '火': 0, '水': 0, '木': 0, '金': 0, '土': 0, '日': 0 };
+            const dailyCounts = {};
+            const hourlyCounts = Array(24).fill(0);
+            const weekdayCounts = { '月': 0, '火': 0, '水': 0, '木': 0, '金': 0, '土': 0, '日': 0 };
+
             timestamps.forEach(t => {
-                const dateStr = t.toLocaleDateString('ja-JP');
+                // JSTで日付文字列を生成
+                const dateStr = t.toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' });
                 dailyCounts[dateStr] = (dailyCounts[dateStr] || 0) + 1;
-                hourlyCounts[t.getHours()]++;
-                weekdayCounts['日月火水木金土'[t.getDay()]]++;
+
+                // JSTで時間を取得
+                const hours = t.getHours();
+                hourlyCounts[hours]++;
+
+                // JSTで曜日を取得
+                const day = t.getDay();
+                const weekday = ['日', '月', '火', '水', '木', '金', '土'][day];
+                weekdayCounts[weekday]++;
             });
+
             return { dailyCounts, hourlyCounts, weekdayCounts };
         }
 
@@ -617,6 +643,7 @@
                     plugins: { legend: { display: false } }
                 }
             });
+
             charts.hourly = new Chart(document.getElementById('hourlyChart').getContext('2d'), {
                 type: 'bar', data: {
                     labels: Array(24).fill().map((_, i) => `${i}時`),
@@ -628,6 +655,7 @@
                     plugins: { legend: { display: false } }
                 }
             });
+
             charts.weekday = new Chart(document.getElementById('weekdayChart').getContext('2d'), {
                 type: 'bar', data: {
                     labels: ['月', '火', '水', '木', '金', '土', '日'],
@@ -668,6 +696,7 @@
                 const re = new RegExp(escapeRegExp(keyword), 'gi');
                 return safe.replace(re, m => `<b>${m}</b>`);
             };
+
             const aliasMap = {};
             memos.forEach(memo => {
                 let m = memo.match(/^([^[=\s]+)\s*=\s*([^=\s]+)$/);
@@ -684,11 +713,13 @@
                     }
                 }
             });
-            // タイムスタンプとメモ内容のマッピングを作成
+
+            // タイムスタンプとメモ内容のマッピングを作成（JSTで表示）
             const memoWithTimestamp = memos.map((memo, index) => {
-                const timestamp = timestamps[index] ? timestamps[index].toLocaleString('ja-JP') : '不明な日付';
+                const timestamp = timestamps[index] ? timestamps[index].toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : '不明な日付';
                 return { memo, timestamp };
             });
+
             const sections = keywordColumns.map((entry, i) => {
                 const keyword = typeof entry === 'string' ? entry : entry.keyword;
                 const normalizedKeyword = normalize(keyword);
@@ -711,12 +742,14 @@
                     }
                     return keywordsToSearch.some(q => aliasList.some(str => normalize(str).includes(q)));
                 });
+
                 const cards = hits.map(h => `
                     <div class="keyword-card" onmouseenter="showTimestamp(this)" onmouseleave="hideTimestamp(this)">
                         <div class="card-content">${highlight(h.memo, keyword)}</div>
                         <div class="timestamp-overlay">${h.timestamp}</div>
                     </div>
                 `).join('');
+
                 return `
                     <div class="keyword-section">
                         <div class="keyword-group-title">
@@ -730,6 +763,7 @@
                     </div>
                 `;
             });
+
             grid.innerHTML = sections.join('');
         }
 
@@ -783,7 +817,11 @@
                 if (rawRows) {
                     const rows = JSON.parse(rawRows);
                     memos = rows.map(row => row.メモ内容 || '').filter(Boolean);
-                    timestamps = rows.map(row => new Date(row.タイムスタンプ)).filter(t => !isNaN(t));
+                    timestamps = rows.map(row => {
+                        const date = new Date(row.タイムスタンプ);
+                        return toJST(date); // JSTに変換
+                    }).filter(t => !isNaN(t));
+
                     if (timestamps.length === 0) return false;
                     const { dailyCounts, hourlyCounts, weekdayCounts } = analyzeData();
                     renderCharts(dailyCounts, hourlyCounts, weekdayCounts);
@@ -809,7 +847,9 @@
         });
 
         // 初回読み込み
-        fetchDataFromAPI();
+        if (!loadFromCacheIfAvailable()) {
+            fetchDataFromAPI();
+        }
     </script>
 </body>
 
