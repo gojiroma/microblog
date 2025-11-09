@@ -9,23 +9,15 @@
         href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📝%3C/text%3E%3C/svg%3E"
         type="image/svg+xml">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            position: relative;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            transition: background-color 0.5s ease, color 0.5s ease;
-        }
-
         :root {
             --bg-color: #ffffff;
             --text-color: #333333;
             --border-color: #ddd;
-            --post-bg-color: rgba(255, 255, 255, 0.7);
-            --button-bg-color: rgba(255, 255, 255, 0.8);
+            --post-bg-color: rgba(255, 255, 255, 0.9);
+            --button-bg-color: rgba(255, 255, 255, 0.9);
+            --modal-bg-color: rgba(0, 0, 0, 0.8);
+            --hover-scale: 1.02;
+            --sepia-filter: sepia(0);
         }
 
         @media (prefers-color-scheme: dark) {
@@ -33,9 +25,21 @@
                 --bg-color: #121212;
                 --text-color: #f0f0f0;
                 --border-color: #444;
-                --post-bg-color: rgba(30, 30, 30, 0.7);
-                --button-bg-color: rgba(50, 50, 50, 0.8);
+                --post-bg-color: rgba(30, 30, 30, 0.9);
+                --button-bg-color: rgba(50, 50, 50, 0.9);
             }
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.5s ease, color 0.5s ease;
+            filter: var(--sepia-filter);
         }
 
         #input-area {
@@ -44,9 +48,9 @@
 
         #post-input {
             width: calc(100% - 24px);
-            padding: 10px;
+            padding: 12px;
             font-size: 16px;
-            border-radius: 5px;
+            border-radius: 8px;
             background-color: var(--bg-color);
             color: var(--text-color);
             border: 1px solid var(--border-color);
@@ -59,12 +63,17 @@
 
         .post {
             border: 1px solid var(--border-color);
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 8px;
             position: relative;
             background-color: var(--post-bg-color);
             color: var(--text-color);
+            transition: transform 0.1s ease;
+        }
+
+        .post:hover {
+            transform: scale(1.01);
         }
 
         .post:hover::after {
@@ -84,19 +93,25 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: var(--modal-bg-color);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal.show {
+            opacity: 1;
         }
 
         .modal-content {
             background-color: var(--bg-color);
-            margin: 15% auto;
-            padding: 20px;
-            border-radius: 10px;
-            width: 80%;
+            margin: 20% auto;
+            padding: 25px;
+            border-radius: 12px;
+            width: 85%;
             max-width: 500px;
             text-align: center;
             color: var(--text-color);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
         .close {
@@ -105,6 +120,7 @@
             font-size: 28px;
             font-weight: bold;
             cursor: pointer;
+            transition: color 0.2s ease;
         }
 
         .close:hover {
@@ -112,30 +128,35 @@
         }
 
         #qrcode {
-            margin: 10px auto;
+            margin: 15px auto;
             max-width: 200px;
+        }
+
+        #qrcode img {
+            max-width: 100%;
+            height: auto;
         }
 
         .modal-buttons {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
             margin-top: 15px;
         }
 
         .modal-button {
-            padding: 10px 15px;
+            padding: 12px 18px;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             background-color: var(--button-bg-color);
             color: var(--text-color);
             cursor: pointer;
             font-size: 16px;
-            transition: opacity 0.2s;
+            transition: transform 0.2s ease;
         }
 
         .modal-button:hover {
-            opacity: 0.8;
+            transform: scale(var(--hover-scale));
         }
 
         #shareUrl {
@@ -143,7 +164,55 @@
             color: var(--text-color);
             text-decoration: none;
             display: block;
-            margin: 10px 0;
+            margin: 15px 0;
+            padding: 8px;
+            background-color: var(--border-color);
+            border-radius: 6px;
+        }
+
+        #searchHistory {
+            display: none;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        #searchHistory.show {
+            display: block;
+        }
+
+        #historyList {
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 0;
+            list-style: none;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+        }
+
+        #historyList li {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.1s ease;
+        }
+
+        #historyList li:hover {
+            background-color: var(--border-color);
+        }
+
+        @media (max-width: 600px) {
+            #post-input {
+                font-size: 18px;
+                padding: 14px;
+            }
+
+            .post {
+                padding: 14px;
+            }
+
+            .modal-content {
+                margin: 25% auto;
+                padding: 20px;
+            }
         }
     </style>
 </head>
@@ -154,7 +223,6 @@
     </div>
     <ul id="posts"></ul>
 
-    <!-- モーダル -->
     <div id="contextModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -163,11 +231,16 @@
                 <button id="showUrlBtn" class="modal-button">🔗 引き継ぎURLを表示</button>
                 <button id="downloadCsvBtn" class="modal-button">📥 データをダウンロード</button>
                 <button id="statsBtn" class="modal-button">📈 統計を表示</button>
+                <button id="showHistoryBtn" class="modal-button">🕵️ 検索履歴を表示</button>
             </div>
             <div id="urlContent" style="display: none;">
                 <h3>引き継ぎURL</h3>
                 <a id="shareUrl" target="_blank"></a>
                 <div id="qrcode"></div>
+            </div>
+            <div id="searchHistory">
+                <h4>検索履歴</h4>
+                <ul id="historyList"></ul>
             </div>
         </div>
     </div>
@@ -175,21 +248,46 @@
     <script>
         // パステルカラーの配列（ライトモード用）
         const lightPastelColors = [
-            '#FFD1DC', '#FFE4B5', '#E6E6FA', '#B5EAD7', '#FFB6C1', '#E0FFFF', '#F0E68C'
+            '#FFD1DC', '#FFE4B5', '#E6E6FA', '#B5EAD7', '#FFB6C1',
+            '#E0FFFF', '#F0E68C', '#D8BFD8', '#FFDAB9', '#E0F6FF',
+            '#F0F8FF', '#FAEBD7', '#FFE4E1', '#D3D3D3', '#F5F5DC',
+            '#FFEBCD', '#F5DEB3', '#FFFACD', '#E6E6FA', '#F0FFF0'
         ];
+
         // ダークモード用パステルカラー
         const darkPastelColors = [
-            '#4A2D3A', '#4A412A', '#3A3A4A', '#2D4A3A', '#4A2D2D', '#2D3A4A', '#4A3A2D'
+            '#4A2D3A', '#4A412A', '#3A3A4A', '#2D4A3A', '#4A2D2D',
+            '#2D3A4A', '#4A3A2D', '#3A2D4A', '#2D3A3A', '#3A3A2D',
+            '#4A3A4A', '#2D2D4A', '#3A2D3A', '#4A413A', '#3A414A',
+            '#2D414A', '#413A4A', '#3A412D', '#412D3A', '#4A2D41'
         ];
+
+        // 配列をシャッフル
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
 
         // ランダムなパステルカラーを適用
         function applyRandomPastelColor() {
             const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const pastelColors = isDarkMode ? darkPastelColors : lightPastelColors;
-            const randomColor = pastelColors[Math.floor(Math.random() * pastelColors.length)];
+            let pastelColors = isDarkMode ? [...darkPastelColors] : [...lightPastelColors];
+            pastelColors = shuffleArray(pastelColors);
+            const randomColor = pastelColors[0];
             document.documentElement.style.setProperty('--bg-color', randomColor);
-            document.documentElement.style.setProperty('--text-color', isDarkMode ? '#f0f0f0' : '#333333');
-            document.documentElement.style.setProperty('--border-color', isDarkMode ? '#555' : '#ccc');
+
+            // 経過時間に応じた黄ばみ
+            const lastUpdate = localStorage.getItem('lastUpdate');
+            if (lastUpdate) {
+                const hoursPassed = (Date.now() - lastUpdate) / (1000 * 60 * 60);
+                const sepiaValue = Math.min(hoursPassed * 0.02, 0.3);
+                document.documentElement.style.setProperty('--sepia-filter', `sepia(${sepiaValue})`);
+            } else {
+                localStorage.setItem('lastUpdate', Date.now());
+            }
         }
 
         // ページロード時にランダムなパステルカラーを適用
@@ -199,10 +297,13 @@
         const postsList = document.getElementById('posts');
         const modal = document.getElementById('contextModal');
         const urlContent = document.getElementById('urlContent');
+        const searchHistory = document.getElementById('searchHistory');
+        const historyList = document.getElementById('historyList');
         const shareUrlElement = document.getElementById('shareUrl');
         const showUrlBtn = document.getElementById('showUrlBtn');
         const downloadCsvBtn = document.getElementById('downloadCsvBtn');
         const statsBtn = document.getElementById('statsBtn');
+        const showHistoryBtn = document.getElementById('showHistoryBtn');
         const closeBtn = document.querySelector('.close');
 
         let allPosts = [];
@@ -215,9 +316,7 @@
         // トークン取得関数
         function getTokenFromCookie() {
             const urlToken = urlParams.get('token');
-            if (urlToken) {
-                return urlToken;
-            }
+            if (urlToken) return urlToken;
             const cookies = document.cookie.split(';').map(cookie => cookie.trim());
             const tokenCookie = cookies.find(cookie => cookie.startsWith('token='));
             return tokenCookie ? tokenCookie.split('=')[1] : '';
@@ -225,9 +324,7 @@
 
         // 全件取得関数
         async function fetchAllPosts() {
-            if (postOnlyMode) {
-                return;
-            }
+            if (postOnlyMode) return;
             const response = await fetch('/search?q=');
             allPosts = await response.json();
             renderPosts(allPosts);
@@ -243,74 +340,61 @@
         // ローカル絞り込み関数
         function filterPosts(query) {
             if (postOnlyMode || !query) {
-                if (!postOnlyMode) {
-                    renderPosts(allPosts);
-                }
+                if (!postOnlyMode) renderPosts(allPosts);
                 return;
             }
-            function kanaConvert(s) {
-                return s.replace(/[ァ-ヴ]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
+
+            function normalize(s) {
+                return s.replace(/[ァ-ヴ]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60))
+                    .replace(/[Ａ-Ｚａ-ｚ０-９]/g, m => String.fromCharCode(m.charCodeAt(0) - 0xFEE0))
+                    .toLowerCase()
+                    .trim();
             }
-            function widthConvert(s) {
-                return s.replace(/[Ａ-Ｚａ-ｚ０-９]/g, m => String.fromCharCode(m.charCodeAt(0) - 0xFEE0));
-            }
-            function caseConvert(s) {
-                return s.toLowerCase();
-            }
-            const normalize = s => caseConvert(widthConvert(kanaConvert((s || '').trim())));
-            // ↓まず全エイリアス辞書を生成（双方向）
+
             const aliasMap = {};
             allPosts.forEach(post => {
-                let m = post.content.match(/^([^[=\s]+)\s*=\s*([^=\s]+)$/);
-                if (m) {
-                    let a = normalize(m[1]), b = normalize(m[2]);
+                const eqMatch = post.content.match(/^([^[=\s]+)\s*=\s*([^=\s]+)$/);
+                if (eqMatch) {
+                    const a = normalize(eqMatch[1]), b = normalize(eqMatch[2]);
                     aliasMap[a] = b;
                     aliasMap[b] = a;
                 } else if (post.content.includes('=')) {
                     const eqParts = post.content.split('=');
                     if (eqParts.length === 2) {
-                        let a = normalize(eqParts[0]), b = normalize(eqParts[1]);
+                        const a = normalize(eqParts[0]), b = normalize(eqParts[1]);
                         aliasMap[a] = b;
                         aliasMap[b] = a;
                     }
                 }
             });
-            // クエリのエイリアス展開
+
             const queries = [normalize(query)];
-            if (aliasMap[queries[0]]) {
-                queries.push(aliasMap[queries[0]]);
-            }
+            if (aliasMap[queries[0]]) queries.push(aliasMap[queries[0]]);
+
             const filtered = allPosts.filter(post => {
-                // 本文とイコール分岐ワードたち
                 let aliasList = [post.content];
-                let m = post.content.match(/^([^[=\s]+)\s*=\s*([^=\s]+)$/);
-                if (m) {
-                    aliasList.push(m[1]);
-                    aliasList.push(m[2]);
+                const eqMatch = post.content.match(/^([^[=\s]+)\s*=\s*([^=\s]+)$/);
+                if (eqMatch) {
+                    aliasList.push(eqMatch[1], eqMatch[2]);
                 } else if (post.content.includes('=')) {
                     const eqParts = post.content.split('=');
-                    if (eqParts.length === 2) {
-                        aliasList.push(eqParts[0]);
-                        aliasList.push(eqParts[1]);
-                    }
+                    if (eqParts.length === 2) aliasList.push(eqParts[0], eqParts[1]);
                 }
                 return queries.some(q => aliasList.some(str => normalize(str).includes(q)));
             });
+
             renderPosts(filtered);
+            saveSearchQuery(query);
         }
 
         // 投稿関数
         async function postContent(content) {
             await fetch('/post', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content }),
             });
-            if (!postOnlyMode) {
-                await fetchAllPosts();
-            }
+            if (!postOnlyMode) await fetchAllPosts();
         }
 
         // URL表示関数
@@ -319,8 +403,10 @@
             const url = `${window.location.origin}${postOnlyMode ? '?postonly=yes&' : '?'}token=${token}`;
             shareUrlElement.href = url;
             shareUrlElement.textContent = url;
-            document.getElementById('qrcode').innerHTML = `<img src="https://idy.vercel.app/q/${encodeURIComponent(url)}" alt="QRコード" style="max-width: 200px;">`;
+            document.getElementById('qrcode').innerHTML =
+                `<img src="https://idy.vercel.app/q/${encodeURIComponent(url)}" alt="QRコード">`;
             urlContent.style.display = 'block';
+            searchHistory.style.display = 'none';
         }
 
         // CSVダウンロード関数
@@ -349,34 +435,52 @@
             window.location.href = '/stats';
         }
 
+        // 検索履歴の保存と表示
+        function saveSearchQuery(query) {
+            const history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+            if (!history.includes(query)) {
+                history.unshift(query);
+                localStorage.setItem('searchHistory', JSON.stringify(history.slice(0, 10)));
+                updateHistoryDisplay();
+            }
+        }
+
+        function updateHistoryDisplay() {
+            const history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+            historyList.innerHTML = history.map(q =>
+                `<li onclick="filterPosts('${q}')">${q}</li>`
+            ).join('');
+        }
+
         // 右クリックでモーダル表示
-        document.addEventListener('contextmenu', function (e) {
+        document.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             urlContent.style.display = 'none';
+            searchHistory.style.display = 'none';
+            modal.classList.add('show');
             modal.style.display = 'block';
         });
 
         // モーダルを閉じる
-        closeBtn.onclick = function () {
-            modal.style.display = 'none';
-        }
+        closeBtn.onclick = () => modal.style.display = 'none';
 
         // モーダル外をクリックで閉じる
-        window.onclick = function (event) {
-            if (event.target == modal) {
-                modal.style.display = 'none';
-            }
-        }
+        window.onclick = (event) => {
+            if (event.target === modal) modal.style.display = 'none';
+        };
 
         // ボタンクリックイベント
         showUrlBtn.addEventListener('click', showUrlWithToken);
         downloadCsvBtn.addEventListener('click', downloadCsv);
         statsBtn.addEventListener('click', goToStats);
+        showHistoryBtn.addEventListener('click', () => {
+            searchHistory.style.display = 'block';
+            urlContent.style.display = 'none';
+            updateHistoryDisplay();
+        });
 
         // 入力イベント（ローカル絞り込み）
-        input.addEventListener('input', (e) => {
-            filterPosts(e.target.value);
-        });
+        input.addEventListener('input', (e) => filterPosts(e.target.value));
 
         // Enterキーで投稿
         input.addEventListener('keydown', async (e) => {
@@ -385,7 +489,6 @@
                 input.value = '';
                 input.disabled = true;
                 isPosting = true;
-                // フロント側でダミー投稿を先頭に即時追加
                 const dummyPost = {
                     content: content,
                     created_at: new Date().toISOString()
@@ -402,10 +505,7 @@
         });
 
         // 初期表示
-        if (!postOnlyMode) {
-            fetchAllPosts();
-        }
-
+        if (!postOnlyMode) fetchAllPosts();
         input.focus();
     </script>
 </body>
