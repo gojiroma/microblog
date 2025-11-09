@@ -148,6 +148,30 @@
             margin: 10px auto;
             max-width: 200px;
         }
+
+        #stats-btn {
+            position: fixed;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            background-color: var(--button-bg-color);
+            color: var(--text-color);
+            bottom: 10px;
+            left: 20px;
+            /* 左下に配置 */
+        }
+
+        #stats-btn:hover {
+            opacity: 0.8;
+        }
     </style>
 
 </head>
@@ -159,6 +183,8 @@
     <ul id="posts"></ul>
     <button id="copy-url-btn" title="URLを表示">🔗</button>
     <button id="download-csv-btn" title="データをダウンロード">📥</button>
+    <button id="stats-btn" title="統計を表示">📈</button>
+
 
     <!-- モーダル -->
     <div id="urlModal" class="modal">
@@ -194,6 +220,14 @@
         const postsList = document.getElementById('posts');
         const copyUrlBtn = document.getElementById('copy-url-btn');
         const downloadCsvBtn = document.getElementById('download-csv-btn');
+        const statsBtn = document.getElementById('stats-btn');
+        // /statsに遷移する関数
+        function goToStats() {
+            window.location.href = '/stats';
+        }
+
+        // クリックイベントの追加
+        statsBtn.addEventListener('click', goToStats);
         const modal = document.getElementById('urlModal');
         const span = document.getElementsByClassName('close')[0];
         const shareUrlElement = document.getElementById('shareUrl');

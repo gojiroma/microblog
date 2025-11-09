@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>つぶやきStats</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #8c7a64;
+            --secondary-color: #cbb79d;
+            --accent-color: #5a5044;
+            --background-color: #f5efe6;
+            --text-color: #3b3b3b;
+            --light-text-color: #5a5044;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: var(--background-color);
+            min-height: 100vh;
+            padding: 16px;
+            color: var(--text-color);
+            line-height: 1.5;
+            letter-spacing: 0.05em;
+        }
+
+        .main-screen {
+            max-width: 100%;
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 8px 0;
+            margin-bottom: 16px;
+            background-color: #f8f4f0;
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .refresh-btn {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            background-color: var(--secondary-color);
+            border: 1.5px solid var(--primary-color);
+            border-radius: 999px;
+            color: var(--accent-color);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .refresh-btn:hover {
+            background-color: #e2d7c8;
+            transform: translateY(-1px);
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        /* Keyword Watch Corner */
+        .keyword-panel {
+            background: #fff;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            border: 1px solid #eee4d6;
+            max-height: 82vh;
+            overflow-y: auto;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--light-text-color);
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .keyword-input-wrapper {
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .keyword-input {
+            width: 100%;
+            padding: 10px 16px 10px 36px;
+            font-size: 13px;
+            border: 1.5px solid #e5dac9;
+            border-radius: 8px;
+            background: #faf6f0;
+        }
+
+        .keyword-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(203, 183, 157, 0.15);
+        }
+
+        .keyword-input::placeholder {
+            color: #adb5bd;
+        }
+
+        /* Random keywords carousel */
+        .random-keywords-container {
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 12px;
+            height: 32px;
+        }
+
+        .random-keywords-carousel {
+            display: flex;
+            gap: 6px;
+            animation: scroll 30s linear infinite;
+            padding-right: 80px;
+        }
+
+        @keyframes scroll {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+
+        .random-keyword-container {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .random-keyword-btn {
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background-color: var(--secondary-color);
+            border: 1.5px solid var(--primary-color);
+            border-radius: 999px;
+            color: var(--accent-color);
+            cursor: pointer;
+            white-space: nowrap;
+            height: 24px;
+        }
+
+        .random-keyword-btn:hover {
+            background-color: #e2d7c8;
+        }
+
+        .keyword-preview {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            border: 1px solid #eee4d6;
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            display: none;
+            min-width: 200px;
+            max-width: 300px;
+        }
+
+        .preview-post {
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+            border-bottom: 1px solid #f0e8d8;
+            padding-bottom: 4px;
+        }
+
+        /* Keyword Cards */
+        .keyword-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .keyword-section {
+            margin-bottom: 16px;
+        }
+
+        .keyword-group-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent-color);
+            padding: 4px 0;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #eee4d6;
+        }
+
+        .keyword-group-title .delete-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #efe6da;
+            border: none;
+            color: var(--accent-color);
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .keyword-group-title .delete-btn:hover {
+            background: #e6dbcc;
+            transform: scale(1.05);
+        }
+
+        .keyword-card {
+            background: #fdffef;
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--accent-color);
+            position: relative;
+            border: 1px solid #eee4d6;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            word-break: break-word;
+            transition: all 0.2s ease;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+        }
+
+        .keyword-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .card-content {
+            width: 100%;
+            white-space: pre-wrap;
+        }
+
+        .timestamp-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 0.7rem;
+            padding: 4px 8px;
+            text-align: right;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            z-index: 1;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+
+        /* Charts */
+        .analysis-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .chart-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            border: 1px solid #eee4d6;
+            height: 280px;
+        }
+
+        .chart-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent-color);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .chart-wrapper {
+            height: calc(100% - 26px);
+            width: 100%;
+        }
+
+        /* Responsive design */
+        @media (min-width: 768px) {
+            .dashboard {
+                grid-template-columns: 2fr 1fr;
+                grid-template-areas: "keyword charts";
+                max-width: 1400px;
+                margin: 0 auto;
+            }
+
+            .keyword-panel {
+                grid-area: keyword;
+                max-height: 85vh;
+            }
+
+            .analysis-panel {
+                grid-area: charts;
+            }
+
+            .keyword-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .chart-card {
+                height: 300px;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .keyword-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .chart-card {
+                height: 320px;
+            }
+        }
+
+        @media (min-width: 1600px) {
+            .dashboard {
+                grid-template-columns: 3fr 1fr;
+                max-width: 1800px;
+            }
+
+            .keyword-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (min-width: 2000px) {
+            .dashboard {
+                grid-template-columns: 4fr 1fr;
+                max-width: 2200px;
+            }
+
+            .keyword-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+
+            .chart-card {
+                height: 340px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Main screen -->
+    <div class="main-screen" id="mainScreen">
+        <div class="toolbar">
+            <button class="refresh-btn" id="refreshBtn">最新データを更新</button>
+        </div>
+        <div class="dashboard">
+            <!-- Keyword Watch Corner -->
+            <div class="keyword-panel">
+                <div class="section-title">🔍 キーワードウォッチ</div>
+                <div class="keyword-input-wrapper">
+                    <input type="text" id="keywordInput" class="keyword-input" placeholder="Enterキーでキーワードを追加...">
+                </div>
+                <div class="random-keywords-container">
+                    <div class="random-keywords-carousel" id="randomKeywordsCarousel"></div>
+                </div>
+                <div class="keyword-grid" id="keywordGrid"></div>
+            </div>
+            <!-- Charts -->
+            <div class="analysis-panel">
+                <div class="chart-card">
+                    <div class="chart-title">📅 日別投稿数</div>
+                    <div class="chart-wrapper">
+                        <canvas id="dailyChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">🕐 時間帯別</div>
+                    <div class="chart-wrapper">
+                        <canvas id="hourlyChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">📊 曜日別投稿数</div>
+                    <div class="chart-wrapper">
+                        <canvas id="weekdayChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        let memos = [], timestamps = [], charts = {}, keywordColumns = [];
+        let keywordSearchInitialized = false;
+        let carouselObserver = null;
+
+        // Normalization functions
+        function kanaConvert(s) {
+            return s.replace(/[ァ-ヴ]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
+        }
+        function widthConvert(s) {
+            return s.replace(/[Ａ-Ｚａ-ｚ０-９]/g, m => String.fromCharCode(m.charCodeAt(0) - 0xFEE0));
+        }
+        function caseConvert(s) {
+            return s.toLowerCase();
+        }
+        function normalize(s) {
+            return caseConvert(widthConvert(kanaConvert((s || '').trim())));
+        }
+        // Helper function to escape special characters for use in IDs
+        function escapeId(s) {
+            return s.replace(/[^a-z0-9]/g, function (s) {
+                const c = s.charCodeAt(0);
+                return (c === 32 ? '-' : '__' + c.toString(16));
+            });
+        }
+        // Helper function to escape HTML
+        function escapeHTML(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+        // Function to add a keyword
+        function addKeyword(keyword) {
+            const input = document.getElementById('keywordInput');
+            input.value = keyword;
+            if (keyword && !keywordColumns.some(k => k.keyword === keyword)) {
+                keywordColumns.push({ keyword });
+                localStorage.setItem('keywordColumns', JSON.stringify(keywordColumns));
+                updateDashboardCache();
+                renderKeywordCards();
+                input.value = '';
+            }
+        }
+        // Fetch data from say.poet.blue API
+        async function fetchDataFromAPI() {
+            try {
+                const response = await fetch("/search?q=", {
+                    headers: {
+                        "accept": "*/*",
+                        "accept-language": "ja,en;q=0.9,en-GB;q=0.8,en-US;q=0.7",
+                        "priority": "u=1, i",
+                        "sec-ch-ua": "\"Chromium\";v=\"142\", \"Microsoft Edge\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+                        "sec-ch-ua-mobile": "?0",
+                        "sec-ch-ua-platform": "\"Windows\"",
+                        "sec-fetch-dest": "empty",
+                        "sec-fetch-mode": "cors",
+                        "sec-fetch-site": "same-origin"
+                    },
+                    referrer: "/",
+                    method: "GET",
+                    credentials: "include"
+                });
+                if (!response.ok) {
+                    throw new Error('APIリクエストに失敗しました');
+                }
+                const data = await response.json();
+                const processedData = data.map(item => ({
+                    'メモ内容': item.content,
+                    'タイムスタンプ': item.created_at
+                }));
+                processData(processedData);
+            } catch (error) {
+                alert('データ取得エラー: ' + error.message);
+            }
+        }
+        // Refresh button
+        document.getElementById('refreshBtn').addEventListener('click', fetchDataFromAPI);
+
+        // Setup carousel with random keywords
+        function setupCarousel() {
+            if (memos.length === 0) {
+                console.log('No memos available');
+                return;
+            }
+            const carousel = document.getElementById('randomKeywordsCarousel');
+            carousel.innerHTML = '';
+            addRandomKeywords(20);
+
+            function addRandomKeywords(count) {
+                const keywordPreviewMap = {};
+                for (let i = 0; i < count; i++) {
+                    const randomMemo = memos[Math.floor(Math.random() * memos.length)];
+                    const startPos = Math.floor(Math.random() * (randomMemo.length - 3));
+                    const segmentLength = Math.min(3, randomMemo.length - startPos);
+                    let randomSegment = randomMemo.substring(startPos, startPos + segmentLength);
+                    if (randomSegment.length < 2) {
+                        randomSegment = randomMemo.substring(0, 2);
+                    }
+                    while (Array.from(carousel.querySelectorAll('.random-keyword-btn')).some(btn => btn.textContent === randomSegment)) {
+                        randomSegment = randomMemo.substring(Math.floor(Math.random() * (randomMemo.length - 3)), Math.floor(Math.random() * (randomMemo.length - 3)) + Math.min(3, randomMemo.length));
+                    }
+                    const matchingPosts = memos.filter(memo =>
+                        normalize(memo).includes(normalize(randomSegment))
+                    ).slice(0, 3);
+                    keywordPreviewMap[randomSegment] = matchingPosts.map(post =>
+                        `<div class="preview-post">${escapeHTML(post)}</div>`
+                    ).join('');
+                    carousel.innerHTML += `
+                        <div class="random-keyword-container">
+                            <button class="random-keyword-btn"
+                                onmouseover="showPreview('${randomSegment}')"
+                                onmouseout="hidePreview('${randomSegment}')"
+                                onclick="addKeyword('${randomSegment}')">
+                                ${randomSegment}
+                            </button>
+                            <div class="keyword-preview" id="preview-${escapeId(randomSegment)}">
+                                ${keywordPreviewMap[randomSegment]}
+                            </div>
+                        </div>
+                    `;
+                }
+                const allKeywords = carousel.querySelectorAll('.random-keyword-container');
+                if (allKeywords.length > 50) {
+                    const firstKeyword = allKeywords[0];
+                    firstKeyword.parentNode.removeChild(firstKeyword);
+                }
+            }
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        addRandomKeywords(10);
+                    }
+                });
+            }, { threshold: 0.5 });
+
+            function observeLastElement() {
+                const lastElement = carousel.lastElementChild;
+                if (lastElement) {
+                    observer.observe(lastElement);
+                }
+            }
+            observeLastElement();
+            carouselObserver = observer;
+        }
+
+        function showPreview(keyword) {
+            const previewElement = document.getElementById(`preview-${escapeId(keyword)}`);
+            if (previewElement) {
+                previewElement.style.display = 'block';
+            }
+        }
+
+        function hidePreview(keyword) {
+            const previewElement = document.getElementById(`preview-${escapeId(keyword)}`);
+            if (previewElement) {
+                previewElement.style.display = 'none';
+            }
+        }
+
+        function processData(data) {
+            memos = data.map(row => row.メモ内容 || '').filter(Boolean);
+            timestamps = data.map(row => new Date(row.タイムスタンプ)).filter(t => !isNaN(t));
+            if (timestamps.length === 0) {
+                alert('有効なデータがありません');
+                return;
+            }
+            try { localStorage.setItem('dashboardRaw', JSON.stringify(data)); } catch (_) { }
+            const { dailyCounts, hourlyCounts, weekdayCounts } = analyzeData();
+            renderCharts(dailyCounts, hourlyCounts, weekdayCounts);
+            updateDashboardCache({ dailyCounts, hourlyCounts, weekdayCounts });
+            setupKeywordSearch();
+            setupCarousel();
+        }
+
+        function analyzeData() {
+            const dailyCounts = {}, hourlyCounts = Array(24).fill(0),
+                weekdayCounts = { '月': 0, '火': 0, '水': 0, '木': 0, '金': 0, '土': 0, '日': 0 };
+            timestamps.forEach(t => {
+                const dateStr = t.toLocaleDateString('ja-JP');
+                dailyCounts[dateStr] = (dailyCounts[dateStr] || 0) + 1;
+                hourlyCounts[t.getHours()]++;
+                weekdayCounts['日月火水木金土'[t.getDay()]]++;
+            });
+            return { dailyCounts, hourlyCounts, weekdayCounts };
+        }
+
+        function renderCharts(daily, hourly, weekday) {
+            destroyCharts();
+            charts.daily = new Chart(document.getElementById('dailyChart').getContext('2d'), {
+                type: 'line', data: {
+                    labels: Object.keys(daily).sort((a, b) => new Date(a) - new Date(b)),
+                    datasets: [{
+                        data: Object.values(daily).sort((a, b, i) => new Date(Object.keys(daily)[i]) - new Date(Object.keys(daily)[i + 1])),
+                        borderColor: '#8c7a64', backgroundColor: 'rgba(203,183,157,0.2)',
+                        tension: 0.4, fill: true
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+            charts.hourly = new Chart(document.getElementById('hourlyChart').getContext('2d'), {
+                type: 'bar', data: {
+                    labels: Array(24).fill().map((_, i) => `${i}時`),
+                    datasets: [{ data: hourly, backgroundColor: '#cbb79d' }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+            charts.weekday = new Chart(document.getElementById('weekdayChart').getContext('2d'), {
+                type: 'bar', data: {
+                    labels: ['月', '火', '水', '木', '金', '土', '日'],
+                    datasets: [{ data: Object.values(weekday), backgroundColor: '#cbb79d' }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function setupKeywordSearch() {
+            if (keywordSearchInitialized) return;
+            const input = document.getElementById('keywordInput');
+            input.addEventListener('keypress', e => {
+                if (e.key === 'Enter') {
+                    const keyword = input.value.trim();
+                    if (keyword && !keywordColumns.some(k => k.keyword === keyword)) {
+                        keywordColumns.push({ keyword });
+                        localStorage.setItem('keywordColumns', JSON.stringify(keywordColumns));
+                        updateDashboardCache();
+                        renderKeywordCards();
+                        input.value = '';
+                    }
+                }
+            });
+            keywordSearchInitialized = true;
+            renderKeywordCards();
+        }
+
+        function renderKeywordCards() {
+            const grid = document.getElementById('keywordGrid');
+            const escapeRegExp = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const highlight = (text, keyword) => {
+                const safe = escapeHTML(text);
+                const re = new RegExp(escapeRegExp(keyword), 'gi');
+                return safe.replace(re, m => `<b>${m}</b>`);
+            };
+            const aliasMap = {};
+            memos.forEach(memo => {
+                let m = memo.match(/^([^[=\s]+)\s*=\s*([^=\s]+)$/);
+                if (m) {
+                    let a = normalize(m[1]), b = normalize(m[2]);
+                    aliasMap[a] = b;
+                    aliasMap[b] = a;
+                } else if (memo.includes('=')) {
+                    const eqParts = memo.split('=');
+                    if (eqParts.length === 2) {
+                        let a = normalize(eqParts[0]), b = normalize(eqParts[1]);
+                        aliasMap[a] = b;
+                        aliasMap[b] = a;
+                    }
+                }
+            });
+            // タイムスタンプとメモ内容のマッピングを作成
+            const memoWithTimestamp = memos.map((memo, index) => {
+                const timestamp = timestamps[index] ? timestamps[index].toLocaleString('ja-JP') : '不明な日付';
+                return { memo, timestamp };
+            });
+            const sections = keywordColumns.map((entry, i) => {
+                const keyword = typeof entry === 'string' ? entry : entry.keyword;
+                const normalizedKeyword = normalize(keyword);
+                const keywordsToSearch = [normalizedKeyword];
+                if (aliasMap[normalizedKeyword]) {
+                    keywordsToSearch.push(aliasMap[normalizedKeyword]);
+                }
+                const hits = memoWithTimestamp.filter(item => {
+                    let aliasList = [item.memo];
+                    let m = item.memo.match(/^([^[=\s]+)\s*=\s*([^=\s]+)$/);
+                    if (m) {
+                        aliasList.push(m[1]);
+                        aliasList.push(m[2]);
+                    } else if (item.memo.includes('=')) {
+                        const eqParts = item.memo.split('=');
+                        if (eqParts.length === 2) {
+                            aliasList.push(eqParts[0]);
+                            aliasList.push(eqParts[1]);
+                        }
+                    }
+                    return keywordsToSearch.some(q => aliasList.some(str => normalize(str).includes(q)));
+                });
+                const cards = hits.map(h => `
+                    <div class="keyword-card" onmouseenter="showTimestamp(this)" onmouseleave="hideTimestamp(this)">
+                        <div class="card-content">${highlight(h.memo, keyword)}</div>
+                        <div class="timestamp-overlay">${h.timestamp}</div>
+                    </div>
+                `).join('');
+                return `
+                    <div class="keyword-section">
+                        <div class="keyword-group-title">
+                            <span>${escapeHTML(keyword)} (${hits.length})</span>
+                            <button class="delete-btn" title="このキーワードを削除"
+                                onclick="keywordColumns.splice(${i},1);localStorage.setItem('keywordColumns',JSON.stringify(keywordColumns));updateDashboardCache();renderKeywordCards()">×</button>
+                        </div>
+                        <div class="keyword-row">
+                            ${cards}
+                        </div>
+                    </div>
+                `;
+            });
+            grid.innerHTML = sections.join('');
+        }
+
+        // タイムスタンプ表示関数
+        function showTimestamp(card) {
+            const overlay = card.querySelector('.timestamp-overlay');
+            if (overlay) {
+                overlay.style.opacity = '1';
+                overlay.style.visibility = 'visible';
+            }
+        }
+
+        function hideTimestamp(card) {
+            const overlay = card.querySelector('.timestamp-overlay');
+            if (overlay) {
+                overlay.style.opacity = '0';
+                overlay.style.visibility = 'hidden';
+            }
+        }
+
+        function updateDashboardCache(latestCounts) {
+            try {
+                const prev = JSON.parse(localStorage.getItem('dashboardCache') || '{}');
+                const cache = {
+                    dailyCounts: latestCounts?.dailyCounts ?? prev.dailyCounts ?? null,
+                    hourlyCounts: latestCounts?.hourlyCounts ?? prev.hourlyCounts ?? null,
+                    weekdayCounts: latestCounts?.weekdayCounts ?? prev.weekdayCounts ?? null,
+                    keywordColumns
+                };
+                localStorage.setItem('dashboardCache', JSON.stringify(cache));
+            } catch (_) { }
+        }
+
+        function loadFromCacheIfAvailable() {
+            try {
+                const rawRows = localStorage.getItem('dashboardRaw');
+                const cacheRaw = localStorage.getItem('dashboardCache');
+                const cache = cacheRaw ? JSON.parse(cacheRaw) : null;
+                const kcRaw = localStorage.getItem('keywordColumns');
+                if (kcRaw) {
+                    const parsed = JSON.parse(kcRaw);
+                    keywordColumns = Array.isArray(parsed)
+                        ? parsed.map(x => (typeof x === 'string' ? { keyword: x } : { keyword: x.keyword }))
+                        : [];
+                } else if (cache?.keywordColumns) {
+                    const parsed = cache.keywordColumns;
+                    keywordColumns = Array.isArray(parsed)
+                        ? parsed.map(x => (typeof x === 'string' ? { keyword: x } : { keyword: x.keyword }))
+                        : [];
+                }
+                if (rawRows) {
+                    const rows = JSON.parse(rawRows);
+                    memos = rows.map(row => row.メモ内容 || '').filter(Boolean);
+                    timestamps = rows.map(row => new Date(row.タイムスタンプ)).filter(t => !isNaN(t));
+                    if (timestamps.length === 0) return false;
+                    const { dailyCounts, hourlyCounts, weekdayCounts } = analyzeData();
+                    renderCharts(dailyCounts, hourlyCounts, weekdayCounts);
+                    renderKeywordCards();
+                    setupKeywordSearch();
+                    setupCarousel();
+                    updateDashboardCache({ dailyCounts, hourlyCounts, weekdayCounts });
+                    return true;
+                }
+            } catch (_) { }
+            return false;
+        }
+
+        function destroyCharts() {
+            Object.values(charts).forEach(c => c?.destroy());
+            charts = {};
+        }
+
+        window.addEventListener('beforeunload', () => {
+            if (carouselObserver) {
+                carouselObserver.disconnect();
+            }
+        });
+
+        // 初回読み込み
+        fetchDataFromAPI();
+    </script>
+</body>
+
+</html>

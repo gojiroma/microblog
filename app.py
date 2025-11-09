@@ -113,6 +113,10 @@ def index():
     resp = make_response(render_template('index.html'))
     resp.set_cookie('token', token, max_age=60*60*24*365)
     return resp
+@app.route('/stats')
+def stats():
+    resp = make_response(render_template('stats.html'))
+    return resp
 
 # 検索API
 @app.route('/search', methods=['GET'])
