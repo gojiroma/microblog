@@ -77,6 +77,10 @@
             transform: scale(1.01);
         }
 
+        .post.highlight {
+            font-weight: bold;
+        }
+
         .post:hover::after {
             content: attr(data-time);
             position: absolute;
@@ -321,14 +325,20 @@
             renderPosts(allPosts);
             updatePostCount();
         }
+        // レンダリング時にハイライト色を適用
         function renderPosts(posts) {
             postsList.innerHTML = posts.map(post =>
-                `<li class="post" data-time="${new Date(post.created_at).toLocaleString()}"
-                data-id="${post.id}"
-                style="${post.is_highlight ? 'font-weight: bold; background-color: yellow;' : ''}">
-                    ${post.content}
-                </li>`
+                `<li class="post ${post.is_highlight ? 'highlight' : ''}"
+            data-time="${new Date(post.created_at).toLocaleString()}"
+            data-id="${post.id}"
+            style="${post.is_highlight ? `background-color: ${post.highlight_color || ''};` : ''}">
+            ${post.content}
+        </li>`
             ).join('');
+            // ハイライトされたポストに色を適用
+            document.querySelectorAll('.post.highlight').forEach(el => {
+                applyHighlightColor(el, true);
+            });
         }
         function updatePostCount() {
             postCountElement.textContent = `${allPosts.length} Posts`;
@@ -503,7 +513,26 @@
         }
         if (!postOnlyMode) fetchAllPosts();
         input.focus();
-        // ポストをタップしたときのハイライト処理
+
+
+        // ハイライトされたポストに色を割り当てる関数
+        function applyHighlightColor(postElement, isHighlighted) {
+            if (isHighlighted) {
+                const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const pastelColors = isDarkMode ? darkPastelColors : lightPastelColors;
+                const shuffledColors = shuffleArray([...pastelColors]);
+                const randomColor = shuffledColors[0];
+                postElement.style.backgroundColor = randomColor;
+                postElement.classList.add('highlight');
+            } else {
+                postElement.style.backgroundColor = '';
+                postElement.classList.remove('highlight');
+            }
+        }
+
+
+
+        // ポストをタップしたときのハイライト処理を更新
         postsList.addEventListener('click', async (e) => {
             const postElement = e.target.closest('.post');
             if (!postElement) return;
@@ -511,10 +540,10 @@
             if (!postId) return;
             const currentPost = allPosts.find(post => post.id == postId);
             if (!currentPost) return;
+
             const isHighlighted = currentPost.is_highlight;
-            // UIを先に更新（仮）
-            postElement.style.fontWeight = isHighlighted ? 'normal' : 'bold';
-            postElement.style.backgroundColor = isHighlighted ? '' : 'yellow';
+            applyHighlightColor(postElement, !isHighlighted);
+
             try {
                 const response = await fetch('/highlight', {
                     method: 'POST',
@@ -522,22 +551,18 @@
                     body: JSON.stringify({ id: postId, is_highlight: !isHighlighted }),
                 });
                 if (response.ok) {
-                    // サーバー更新成功時、データを更新
                     currentPost.is_highlight = !isHighlighted;
                 } else {
-                    // サーバー更新失敗時、UIを元に戻す
-                    postElement.style.fontWeight = isHighlighted ? 'bold' : 'normal';
-                    postElement.style.backgroundColor = isHighlighted ? 'yellow' : '';
+                    applyHighlightColor(postElement, isHighlighted);
                     alert('ハイライトの更新に失敗しました。');
                 }
             } catch (error) {
                 console.error('Error updating highlight:', error);
-                // サーバー更新失敗時、UIを元に戻す
-                postElement.style.fontWeight = isHighlighted ? 'bold' : 'normal';
-                postElement.style.backgroundColor = isHighlighted ? 'yellow' : '';
+                applyHighlightColor(postElement, isHighlighted);
                 alert('ハイライトの更新に失敗しました。');
             }
         });
+
         let showOnlyHighlighted = false;
         input.addEventListener('click', () => {
             if (input.value.trim() === '') {
