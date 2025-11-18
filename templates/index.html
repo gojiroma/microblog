@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,10 +15,12 @@
             --border-color: #ddd;
             --post-bg-color: rgba(255, 255, 255, 0.9);
             --button-bg-color: rgba(255, 255, 255, 0.9);
-            --modal-bg-color: rgba(0, 0, 0, 0.8);
+            --modal-bg-light: rgba(255, 255, 255, 0.1);
+            --modal-bg-dark: rgba(0, 0, 0, 0.1);
             --hover-scale: 1.02;
             --sepia-filter: sepia(0);
         }
+
         @media (prefers-color-scheme: dark) {
             :root {
                 --bg-color: #121212;
@@ -27,6 +30,7 @@
                 --button-bg-color: rgba(50, 50, 50, 0.9);
             }
         }
+
         body {
             max-width: 600px;
             margin: 0 auto;
@@ -37,9 +41,11 @@
             transition: background-color 0.5s ease, color 0.5s ease;
             filter: var(--sepia-filter);
         }
+
         #input-area {
             margin-bottom: 20px;
         }
+
         #post-input {
             width: calc(100% - 24px);
             padding: 12px;
@@ -50,10 +56,12 @@
             border: 1px solid var(--border-color);
             font-weight: 500;
         }
+
         #posts {
             list-style: none;
             padding: 0;
         }
+
         .post {
             padding: 15px;
             margin-bottom: 12px;
@@ -64,9 +72,11 @@
             transition: transform 0.1s ease;
             font-size: larger;
         }
+
         .post:hover {
             transform: scale(1.01);
         }
+
         .post:hover::after {
             content: attr(data-time);
             position: absolute;
@@ -75,6 +85,7 @@
             font-size: 12px;
             color: #aaa;
         }
+
         .modal {
             display: none;
             position: fixed;
@@ -83,24 +94,34 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: var(--modal-bg-color);
+            backdrop-filter: blur(8px);
+            background-color: var(--modal-bg-light);
             opacity: 0;
             transition: opacity 0.3s ease;
         }
+
+        @media (prefers-color-scheme: dark) {
+            .modal {
+                background-color: var(--modal-bg-dark);
+            }
+        }
+
         .modal.show {
             opacity: 1;
         }
+
         .modal-content {
             background-color: var(--bg-color);
             margin: 20% auto;
-            padding: 25px;
+            padding: 30px;
             border-radius: 12px;
             width: 85%;
             max-width: 500px;
             text-align: center;
             color: var(--text-color);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
+
         .close {
             color: #aaa;
             float: right;
@@ -109,28 +130,41 @@
             cursor: pointer;
             transition: color 0.2s ease;
         }
+
         .close:hover {
             color: var(--text-color);
         }
+
         #post-count {
-            font-size: 24px;
+            font-size: 36px;
             font-weight: bold;
-            margin-bottom: 15px;
+            margin: 20px 0;
+            color: var(--text-color);
+            text-shadow:
+                1px 1px 0 rgba(0, 0, 0, 0.1),
+                2px 2px 0 rgba(0, 0, 0, 0.08),
+                3px 3px 0 rgba(0, 0, 0, 0.05);
+            transform-style: preserve-3d;
+            transform: translateZ(2px);
         }
+
         #qrcode {
             margin: 15px auto;
             max-width: 200px;
         }
+
         #qrcode img {
             max-width: 100%;
             height: auto;
         }
+
         .modal-buttons {
             display: flex;
             flex-direction: column;
             gap: 12px;
             margin-top: 15px;
         }
+
         .modal-button {
             padding: 12px 18px;
             border: none;
@@ -139,11 +173,15 @@
             color: var(--text-color);
             cursor: pointer;
             font-size: 16px;
-            transition: transform 0.2s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
         .modal-button:hover {
             transform: scale(var(--hover-scale));
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
+
         #shareUrl {
             word-break: break-all;
             color: var(--text-color);
@@ -154,14 +192,17 @@
             background-color: var(--border-color);
             border-radius: 6px;
         }
+
         #searchHistory {
             display: none;
             margin-top: 20px;
             text-align: left;
         }
+
         #searchHistory.show {
             display: block;
         }
+
         #historyList {
             max-height: 150px;
             overflow-y: auto;
@@ -170,22 +211,27 @@
             border: 1px solid var(--border-color);
             border-radius: 6px;
         }
+
         #historyList li {
             padding: 8px 12px;
             cursor: pointer;
             transition: background-color 0.1s ease;
         }
+
         #historyList li:hover {
             background-color: var(--border-color);
         }
+
         @media (max-width: 600px) {
             #post-input {
                 font-size: 18px;
                 padding: 14px;
             }
+
             .post {
                 padding: 14px;
             }
+
             .modal-content {
                 margin: 25% auto;
                 padding: 20px;
@@ -193,6 +239,7 @@
         }
     </style>
 </head>
+
 <body>
     <div id="input-area">
         <input type="text" id="post-input" placeholder="つぶやき・検索（設定などは右クリック）" autocomplete="off">
@@ -202,7 +249,6 @@
         <div class="modal-content">
             <div id="post-count"></div>
             <span class="close">&times;</span>
-            <h3>メニュー</h3>
             <div class="modal-buttons">
                 <button id="showUrlBtn" class="modal-button">🔗 引き継ぎURLを表示</button>
                 <button id="downloadCsvBtn" class="modal-button">📥 データをダウンロード</button>
@@ -222,21 +268,18 @@
         </div>
     </div>
     <script>
-        // パステルカラーの配列（ライトモード用）
         const lightPastelColors = [
             '#FFD1DC', '#FFE4B5', '#E6E6FA', '#B5EAD7', '#FFB6C1',
             '#E0FFFF', '#F0E68C', '#D8BFD8', '#FFDAB9', '#E0F6FF',
             '#F0F8FF', '#FAEBD7', '#FFE4E1', '#D3D3D3', '#F5F5DC',
             '#FFEBCD', '#F5DEB3', '#FFFACD', '#E6E6FA', '#F0FFF0'
         ];
-        // ダークモード用パステルカラー
         const darkPastelColors = [
             '#4A2D3A', '#4A412A', '#3A3A4A', '#2D4A3A', '#4A2D2D',
             '#2D3A4A', '#4A3A2D', '#3A2D4A', '#2D3A3A', '#3A3A2D',
             '#4A3A4A', '#2D2D4A', '#3A2D3A', '#413A2D', '#412D3A',
             '#4A2D41', '#2D414A', '#413A4A', '#3A412D', '#412D3A'
         ];
-        // 配列をシャッフル
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -244,14 +287,12 @@
             }
             return array;
         }
-        // ランダムなパステルカラーを適用
         function applyRandomPastelColor() {
             const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
             let pastelColors = isDarkMode ? [...darkPastelColors] : [...lightPastelColors];
             pastelColors = shuffleArray(pastelColors);
             const randomColor = pastelColors[0];
             document.documentElement.style.setProperty('--bg-color', randomColor);
-            // 経過時間に応じた黄ばみ
             const lastUpdate = localStorage.getItem('lastUpdate');
             if (lastUpdate) {
                 const hoursPassed = (Date.now() - lastUpdate) / (1000 * 60 * 60);
@@ -261,7 +302,6 @@
                 localStorage.setItem('lastUpdate', Date.now());
             }
         }
-        // ページロード時にランダムなパステルカラーを適用
         window.addEventListener('load', applyRandomPastelColor);
         const input = document.getElementById('post-input');
         const postsList = document.getElementById('posts');
@@ -279,11 +319,9 @@
         const closeBtn = document.querySelector('.close');
         let allPosts = [];
         let isPosting = false;
-        // URLパラメータを取得
         const urlParams = new URLSearchParams(window.location.search);
         const postOnlyMode = urlParams.get('postonly') === 'yes';
         const postParam = urlParams.get('p');
-        // トークン取得関数
         function getTokenFromCookie() {
             const urlToken = urlParams.get('token');
             if (urlToken) return urlToken;
@@ -291,7 +329,6 @@
             const tokenCookie = cookies.find(cookie => cookie.startsWith('token='));
             return tokenCookie ? tokenCookie.split('=')[1] : '';
         }
-        // 全件取得関数
         async function fetchAllPosts() {
             if (postOnlyMode) return;
             const response = await fetch('/search?q=');
@@ -299,17 +336,14 @@
             renderPosts(allPosts);
             updatePostCount();
         }
-        // つぶやき表示関数
         function renderPosts(posts) {
             postsList.innerHTML = posts.map(post =>
                 `<li class="post" data-time="${new Date(post.created_at).toLocaleString()}">${post.content}</li>`
             ).join('');
         }
-        // ポスト数を更新
         function updatePostCount() {
             postCountElement.textContent = `${allPosts.length} Posts`;
         }
-        // ローカル絞り込み関数
         function filterPosts(query) {
             if (postOnlyMode || !query) {
                 if (!postOnlyMode) renderPosts(allPosts);
@@ -353,7 +387,6 @@
             renderPosts(filtered);
             saveSearchQuery(query);
         }
-        // 投稿関数
         async function postContent(content) {
             await fetch('/post', {
                 method: 'POST',
@@ -362,7 +395,6 @@
             });
             if (!postOnlyMode) await fetchAllPosts();
         }
-        // URL表示関数
         function showUrlWithToken() {
             const token = getTokenFromCookie();
             const url = `${window.location.origin}${postOnlyMode ? '?postonly=yes&' : '?'}token=${token}`;
@@ -373,7 +405,6 @@
             urlContent.style.display = 'block';
             searchHistory.style.display = 'none';
         }
-        // CSVダウンロード関数
         function downloadCsv() {
             if (postOnlyMode) {
                 alert('投稿専用モードではデータをダウンロードできません。');
@@ -393,20 +424,21 @@
             link.click();
             document.body.removeChild(link);
         }
-        // 統計表示関数
         function goToStats() {
             window.location.href = '/stats';
         }
-        // 今日のつぶやきを送信
         function sendTodayPosts() {
             const today = new Date().toISOString().split('T')[0];
             const todayPosts = allPosts.filter(post => post.created_at.startsWith(today));
-            const message = todayPosts.map(post => `${new Date(post.created_at).toLocaleTimeString()} ${post.content}`).join('\n');
-            alert(`今日のつぶやきを送信します:\n\n${message}`);
-            // 実際の送信処理はここを実装
-            // 例: fetch('/send_to_lechat', { method: 'POST', body: JSON.stringify({ message }) });
+            if (todayPosts.length === 0) {
+                alert('今日のつぶやきはありません。');
+                return;
+            }
+            const message = todayPosts.map(post => post.content).join('\n');
+            const encodedMessage = encodeURIComponent(message);
+            const url = `https://chat.mistral.ai/chat?q=${encodedMessage}`;
+            window.open(url, '_blank');
         }
-        // 検索履歴の保存と表示
         function saveSearchQuery(query) {
             const history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
             if (!history.includes(query)) {
@@ -421,7 +453,6 @@
                 `<li onclick="filterPosts('${q}')">${q}</li>`
             ).join('');
         }
-        // 右クリックでモーダル表示
         document.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             urlContent.style.display = 'none';
@@ -429,13 +460,10 @@
             modal.classList.add('show');
             modal.style.display = 'block';
         });
-        // モーダルを閉じる
         closeBtn.onclick = () => modal.style.display = 'none';
-        // モーダル外をクリックで閉じる
         window.onclick = (event) => {
             if (event.target === modal) modal.style.display = 'none';
         };
-        // ボタンクリックイベント
         showUrlBtn.addEventListener('click', showUrlWithToken);
         downloadCsvBtn.addEventListener('click', downloadCsv);
         statsBtn.addEventListener('click', goToStats);
@@ -445,9 +473,7 @@
             updateHistoryDisplay();
         });
         sendTodayPostsBtn.addEventListener('click', sendTodayPosts);
-        // 入力イベント（ローカル絞り込み）
         input.addEventListener('input', (e) => filterPosts(e.target.value));
-        // Enterキーで投稿
         input.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter' && input.value.trim() && !isPosting) {
                 const content = input.value.trim();
@@ -465,19 +491,18 @@
                 } finally {
                     input.disabled = false;
                     isPosting = false;
-                    input.focus(); // 投稿後にフォーカスを戻す
+                    input.focus();
                 }
             }
         });
-        // URLパラメータpで投稿
         if (postParam) {
             input.value = postParam;
             const event = new KeyboardEvent('keydown', { key: 'Enter' });
             input.dispatchEvent(event);
         }
-        // 初期表示
         if (!postOnlyMode) fetchAllPosts();
         input.focus();
     </script>
 </body>
+
 </html>
