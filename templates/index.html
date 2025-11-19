@@ -683,14 +683,20 @@
         });
 
         document.body.addEventListener('click', (e) => {
-            if (!e.target.closest('#posts') && !e.target.closest('#input-area')) {
-                wordModal.classList.add('show');
-                wordModal.style.display = 'block';
-                wordInput.focus();
-                fetchFreqWords();
+            if (e.target === wordModal) {
+                wordModal.classList.remove('show');
+                wordModal.style.display = 'none';
             }
         });
 
+        input.addEventListener('dblclick', async (e) => {
+            e.preventDefault();
+            wordModal.classList.add('show');
+            wordModal.style.display = 'block';
+            wordInput.focus();
+            fetchFreqWords();
+        });
+        
         wordModal.addEventListener('click', (e) => {
             if (e.target === wordModal) {
                 wordModal.classList.remove('show');
