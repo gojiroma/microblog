@@ -303,6 +303,12 @@
                 font-size: 14px;
             }
         }
+
+        .post a {
+            color: var(--text-color);
+            text-decoration: underline;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -427,18 +433,24 @@
 
         // 投稿表示
         function renderPosts(posts) {
-            postsList.innerHTML = posts.map(post =>
-                `<li class="post ${post.is_highlight ? 'highlight' : ''}"
+            postsList.innerHTML = posts.map(post => {
+                const content = post.content.startsWith('http://') || post.content.startsWith('https://')
+                    ? `<a href="${post.content}" target="_blank" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${post.content}</a>`
+                    : post.content;
+                return `
+            <li class="post ${post.is_highlight ? 'highlight' : ''}"
                 data-time="${new Date(post.created_at).toLocaleString()}"
                 data-id="${post.id}"
                 style="${post.is_highlight ? `background-color: ${post.highlight_color || ''};` : ''}">
-                ${post.content}
-            </li>`
-            ).join('');
+                ${content}
+            </li>
+        `;
+            }).join('');
             document.querySelectorAll('.post.highlight').forEach(el => {
                 applyHighlightColor(el, true);
             });
         }
+
 
         // 投稿数更新
         function updatePostCount() {
@@ -696,7 +708,7 @@
             wordInput.focus();
             fetchFreqWords();
         });
-        
+
         wordModal.addEventListener('click', (e) => {
             if (e.target === wordModal) {
                 wordModal.classList.remove('show');
@@ -707,12 +719,19 @@
         postsList.addEventListener('click', async (e) => {
             const postElement = e.target.closest('.post');
             if (!postElement) return;
+
+            // aタグ内をクリックした場合はハイライトしない
+            if (e.target.tagName === 'A') return;
+
             const postId = postElement.getAttribute('data-id');
             if (!postId) return;
+
             const currentPost = allPosts.find(post => post.id == postId);
             if (!currentPost) return;
+
             const isHighlighted = currentPost.is_highlight;
             applyHighlightColor(postElement, !isHighlighted);
+
             try {
                 const response = await fetch('/highlight', {
                     method: 'POST',
@@ -731,6 +750,7 @@
                 alert('ハイライトの更新に失敗しました。');
             }
         });
+
 
         let showOnlyHighlighted = false;
         input.addEventListener('click', () => {
