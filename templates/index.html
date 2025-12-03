@@ -627,6 +627,7 @@
 
         // postsList のクリックイベントハンドラを修正
         postsList.addEventListener('click', async (e) => {
+            if (e.target.closest('a')) return;
             const postElement = e.target.closest('.post');
             if (!postElement) return;
             if (e.target.tagName === 'A') return;
