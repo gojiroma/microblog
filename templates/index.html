@@ -492,7 +492,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content }),
             });
-            window.location.href = window.location.origin + window.location.pathname;
+            history.replaceState({}, '', window.location.pathname);
             if (!postOnlyMode) await fetchAllPosts();
             // 投稿後にURLパラメータを消す
         }
