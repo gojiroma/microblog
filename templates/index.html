@@ -343,6 +343,8 @@
         let allPosts = [];
         let isPosting = false;
         let isSearchMode = false;
+        let hideThumbnailPosts = false;
+
 
 
         // トークン取得
@@ -394,22 +396,22 @@
             updatePostCount();
         }
 
-        // 投稿表示
+        // 投稿表示関数を修正（サムネイル非表示対応）
         function renderPosts(posts) {
             postsList.innerHTML = posts.map(post => {
                 const content = post.content.startsWith('http://') || post.content.startsWith('https://')
                     ? `<a href="${post.content}" target="_blank" class="post-thumbnail-link" data-encoded-url="${post.content}">
-                       <img src="${getThumbnailUrl(post.content)}" alt="サムネイル" class="post-thumbnail" onerror="this.style.display='none'; this.parentNode.innerHTML='${post.content}';">
-                   </a>`
+               <img src="${getThumbnailUrl(post.content)}" alt="サムネイル" class="post-thumbnail" onerror="this.style.display='none'; this.parentNode.innerHTML='${post.content}';">
+           </a>`
                     : post.content;
                 return `
-                <li class="post ${post.is_highlight ? 'highlight' : ''}"
-                    data-time="${new Date(post.created_at).toLocaleString()}"
-                    data-id="${post.id}"
-                    style="${post.is_highlight ? `background-color: ${post.highlight_color || ''};` : ''}">
-                    ${content}
-                </li>
-            `;
+        <li class="post ${post.is_highlight ? 'highlight' : ''}"
+            data-time="${new Date(post.created_at).toLocaleString()}"
+            data-id="${post.id}"
+            style="${post.is_highlight ? `background-color: ${post.highlight_color || ''};` : ''}">
+            ${content}
+        </li>
+    `;
             }).join('');
             document.querySelectorAll('.post.highlight').forEach(el => {
                 applyHighlightColor(el, true);
@@ -638,6 +640,29 @@
             }
         });
 
+        // 投稿のダブルクリックイベント
+        postsList.addEventListener('dblclick', (e) => {
+            if (e.target.closest('a')) return;
+            const postElement = e.target.closest('.post');
+            if (!postElement) return;
+            const postContent = postElement.textContent.trim();
+            // Xの投稿画面を開く
+            window.open(`https://x.com/intent/post?text=${encodeURIComponent(postContent)}`, '_blank');
+        });
+
+
+        // inputのダブルクリックイベント
+        input.addEventListener('dblclick', () => {
+            hideThumbnailPosts = !hideThumbnailPosts;
+            if (hideThumbnailPosts) {
+                const filteredPosts = allPosts.filter(post =>
+                    !(post.content.startsWith('http://') || post.content.startsWith('https://'))
+                );
+                renderPosts(filteredPosts);
+            } else {
+                renderPosts(allPosts);
+            }
+        });
 
         // postsList のクリックイベントハンドラを修正
         postsList.addEventListener('click', async (e) => {
