@@ -361,9 +361,13 @@
             const tokenCookie = cookies.find(cookie => cookie.startsWith('token='));
             return tokenCookie ? tokenCookie.split('=')[1] : '';
         }
-
         function getThumbnailUrl(pageUrl) {
-            const decodedUrl = decodeURIComponent(pageUrl);
+            let decodedUrl;
+            try {
+                decodedUrl = decodeURIComponent(pageUrl);
+            } catch (e) {
+                decodedUrl = pageUrl;
+            }
             // GyazoのURLを直接画像URLに変換
             if (decodedUrl.includes('gyazo.com/')) {
                 const gyazoId = decodedUrl.split('gyazo.com/')[1].split(/[/?#]/)[0];
@@ -429,7 +433,12 @@
                 let content = post.content;
                 // URLをサムネイルリンクに置換
                 content = content.replace(/((https?:\/\/[^\s]+))/g, (match, url) => {
-                    const decodedUrl = decodeURIComponent(url);
+                    let decodedUrl;
+                    try {
+                        decodedUrl = decodeURIComponent(url);
+                    } catch (e) {
+                        decodedUrl = url;
+                    }
                     return `<a href="${url}" target="_blank" class="post-thumbnail-link" data-encoded-url="${url}">
                 <img src="${getThumbnailUrl(decodedUrl)}" alt="サムネイル" class="post-thumbnail" onerror="this.style.display='none'; this.parentNode.innerHTML='${decodedUrl}';">
             </a>`;
@@ -449,6 +458,7 @@
 
 
 
+
         // 投稿数更新
         function updatePostCount() {
             postCountElement.textContent = `${allPosts.length} Posts`;
@@ -462,7 +472,13 @@
                 return;
             }
             function normalize(s) {
-                return decodeURIComponent(s)
+                let decodedS;
+                try {
+                    decodedS = decodeURIComponent(s);
+                } catch (e) {
+                    decodedS = s;
+                }
+                return decodedS
                     .replace(/[ァ-ヴ]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60))
                     .replace(/[Ａ-Ｚａ-ｚ０-９]/g, m => String.fromCharCode(m.charCodeAt(0) - 0xFEE0))
                     .toLowerCase()
