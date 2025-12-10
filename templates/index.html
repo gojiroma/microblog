@@ -363,21 +363,23 @@
         }
 
         function getThumbnailUrl(pageUrl) {
+            const decodedUrl = decodeURIComponent(pageUrl);
             // GyazoのURLを直接画像URLに変換
-            if (pageUrl.includes('gyazo.com/')) {
-                const gyazoId = pageUrl.split('gyazo.com/')[1].split(/[/?#]/)[0];
+            if (decodedUrl.includes('gyazo.com/')) {
+                const gyazoId = decodedUrl.split('gyazo.com/')[1].split(/[/?#]/)[0];
                 return `https://i.gyazo.com/${gyazoId}.png`;
             }
             // c.poet.blueのURLはそのまま返す
-            if (pageUrl.includes('c.poet.blue/')) {
-                return pageUrl;
+            if (decodedUrl.includes('c.poet.blue/')) {
+                return decodedUrl;
             }
-            const vid = extractYouTubeVideoId(pageUrl);
+            const vid = extractYouTubeVideoId(decodedUrl);
             if (vid) {
                 return `https://i.ytimg.com/vi/${encodeURIComponent(vid)}/maxresdefault.jpg`;
             }
-            return `https://rdl.ink/render/${encodeURIComponent(pageUrl)}?mode=fillmax&fill=solid&format=webp&width=254&ar=16:9&dpr=2.25`;
+            return `https://rdl.ink/render/${encodeURIComponent(decodedUrl)}?mode=fillmax&fill=solid&format=webp&width=254&ar=16:9&dpr=2.25`;
         }
+
 
 
         // YouTube動画IDを抽出
@@ -424,14 +426,15 @@
 
         function renderPosts(posts) {
             postsList.innerHTML = posts.map(post => {
-                // 1. まずURLをサムネイルリンクに置換
                 let content = post.content;
+                // URLをサムネイルリンクに置換
                 content = content.replace(/((https?:\/\/[^\s]+))/g, (match, url) => {
+                    const decodedUrl = decodeURIComponent(url);
                     return `<a href="${url}" target="_blank" class="post-thumbnail-link" data-encoded-url="${url}">
-                <img src="${getThumbnailUrl(url)}" alt="サムネイル" class="post-thumbnail" onerror="this.style.display='none'; this.parentNode.innerHTML='${url}';">
+                <img src="${getThumbnailUrl(decodedUrl)}" alt="サムネイル" class="post-thumbnail" onerror="this.style.display='none'; this.parentNode.innerHTML='${decodedUrl}';">
             </a>`;
                 });
-                // 2. ハッシュタグをリンクに置換
+                // ハッシュタグをリンクに置換
                 content = linkifyHashtags(content);
                 return `
             <li class="post ${post.is_highlight ? 'highlight' : ''}"
@@ -442,10 +445,8 @@
             </li>
         `;
             }).join('');
-            document.querySelectorAll('.post.highlight').forEach(el => {
-                applyHighlightColor(el, true);
-            });
         }
+
 
 
         // 投稿数更新
@@ -460,9 +461,9 @@
                 isSearchMode = false;
                 return;
             }
-
             function normalize(s) {
-                return s.replace(/[ァ-ヴ]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60))
+                return decodeURIComponent(s)
+                    .replace(/[ァ-ヴ]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60))
                     .replace(/[Ａ-Ｚａ-ｚ０-９]/g, m => String.fromCharCode(m.charCodeAt(0) - 0xFEE0))
                     .toLowerCase()
                     .trim();
