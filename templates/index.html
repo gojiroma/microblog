@@ -368,13 +368,17 @@
                 const gyazoId = pageUrl.split('gyazo.com/')[1].split(/[/?#]/)[0];
                 return `https://i.gyazo.com/${gyazoId}.png`;
             }
-
+            // c.poet.blueのURLはそのまま返す
+            if (pageUrl.includes('c.poet.blue/')) {
+                return pageUrl;
+            }
             const vid = extractYouTubeVideoId(pageUrl);
             if (vid) {
                 return `https://i.ytimg.com/vi/${encodeURIComponent(vid)}/maxresdefault.jpg`;
             }
             return `https://rdl.ink/render/${encodeURIComponent(pageUrl)}?mode=fillmax&fill=solid&format=webp&width=254&ar=16:9&dpr=2.25`;
         }
+
 
         // YouTube動画IDを抽出
         function extractYouTubeVideoId(rawUrl) {

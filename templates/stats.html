@@ -55,23 +55,6 @@
             padding: 12px;
         }
 
-        .refresh-btn {
-            padding: 6px 12px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            background-color: var(--secondary-color);
-            border: 1.5px solid var(--primary-color);
-            border-radius: 999px;
-            color: var(--accent-color);
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .refresh-btn:hover {
-            background-color: #e2d7c8;
-            transform: translateY(-1px);
-        }
-
         .dashboard {
             display: grid;
             grid-template-columns: 1fr;
@@ -377,7 +360,7 @@
     <!-- Main screen -->
     <div class="main-screen" id="mainScreen">
         <div class="toolbar">
-            <button class="refresh-btn" id="refreshBtn">最新データを更新</button>
+            <!-- 最新データを更新ボタンを削除 -->
         </div>
         <div class="dashboard">
             <!-- Keyword Watch Corner -->
@@ -497,9 +480,6 @@
             }
         }
 
-        // Refresh button
-        document.getElementById('refreshBtn').addEventListener('click', fetchDataFromAPI);
-
         // Setup carousel with random keywords
         function setupCarousel() {
             if (memos.length === 0) {
@@ -585,12 +565,10 @@
         function processData(data) {
             memos = data.map(row => row.メモ内容 || '').filter(Boolean);
             timestamps = data.map(row => new Date(row.タイムスタンプ)).filter(t => !isNaN(t));
-
             if (timestamps.length === 0) {
                 alert('有効なデータがありません');
                 return;
             }
-
             try { localStorage.setItem('dashboardRaw', JSON.stringify(data)); } catch (_) { }
             const { dailyCounts, hourlyCounts, weekdayCounts } = analyzeData();
             renderCharts(dailyCounts, hourlyCounts, weekdayCounts);
@@ -603,19 +581,15 @@
             const dailyCounts = {};
             const hourlyCounts = Array(24).fill(0);
             const weekdayCounts = { '月': 0, '火': 0, '水': 0, '木': 0, '金': 0, '土': 0, '日': 0 };
-
             timestamps.forEach(t => {
                 const dateStr = t.toLocaleDateString('ja-JP');
                 dailyCounts[dateStr] = (dailyCounts[dateStr] || 0) + 1;
-
                 const hours = t.getHours();
                 hourlyCounts[hours]++;
-
                 const day = t.getDay();
                 const weekday = ['日', '月', '火', '水', '木', '金', '土'][day];
                 weekdayCounts[weekday]++;
             });
-
             return { dailyCounts, hourlyCounts, weekdayCounts };
         }
 
@@ -636,7 +610,6 @@
                     plugins: { legend: { display: false } }
                 }
             });
-
             charts.hourly = new Chart(document.getElementById('hourlyChart').getContext('2d'), {
                 type: 'bar', data: {
                     labels: Array(24).fill().map((_, i) => `${i}時`),
@@ -648,7 +621,6 @@
                     plugins: { legend: { display: false } }
                 }
             });
-
             charts.weekday = new Chart(document.getElementById('weekdayChart').getContext('2d'), {
                 type: 'bar', data: {
                     labels: ['月', '火', '水', '木', '金', '土', '日'],
@@ -689,7 +661,6 @@
                 const re = new RegExp(escapeRegExp(keyword), 'gi');
                 return safe.replace(re, m => `<b>${m}</b>`);
             };
-
             const aliasMap = {};
             memos.forEach(memo => {
                 let m = memo.match(/^([^[=\s]+)\s*=\s*([^=\s]+)$/);
@@ -706,13 +677,11 @@
                     }
                 }
             });
-
             // タイムスタンプとメモ内容のマッピングを作成
             const memoWithTimestamp = memos.map((memo, index) => {
                 const timestamp = timestamps[index] ? timestamps[index].toLocaleString('ja-JP') : '不明な日付';
                 return { memo, timestamp };
             });
-
             const sections = keywordColumns.map((entry, i) => {
                 const keyword = typeof entry === 'string' ? entry : entry.keyword;
                 const normalizedKeyword = normalize(keyword);
@@ -735,14 +704,12 @@
                     }
                     return keywordsToSearch.some(q => aliasList.some(str => normalize(str).includes(q)));
                 });
-
                 const cards = hits.map(h => `
                     <div class="keyword-card" onmouseenter="showTimestamp(this)" onmouseleave="hideTimestamp(this)">
                         <div class="card-content">${highlight(h.memo, keyword)}</div>
                         <div class="timestamp-overlay">${h.timestamp}</div>
                     </div>
                 `).join('');
-
                 return `
                     <div class="keyword-section">
                         <div class="keyword-group-title">
@@ -756,7 +723,6 @@
                     </div>
                 `;
             });
-
             grid.innerHTML = sections.join('');
         }
 
@@ -790,41 +756,6 @@
             } catch (_) { }
         }
 
-        function loadFromCacheIfAvailable() {
-            try {
-                const rawRows = localStorage.getItem('dashboardRaw');
-                const cacheRaw = localStorage.getItem('dashboardCache');
-                const cache = cacheRaw ? JSON.parse(cacheRaw) : null;
-                const kcRaw = localStorage.getItem('keywordColumns');
-                if (kcRaw) {
-                    const parsed = JSON.parse(kcRaw);
-                    keywordColumns = Array.isArray(parsed)
-                        ? parsed.map(x => (typeof x === 'string' ? { keyword: x } : { keyword: x.keyword }))
-                        : [];
-                } else if (cache?.keywordColumns) {
-                    const parsed = cache.keywordColumns;
-                    keywordColumns = Array.isArray(parsed)
-                        ? parsed.map(x => (typeof x === 'string' ? { keyword: x } : { keyword: x.keyword }))
-                        : [];
-                }
-                if (rawRows) {
-                    const rows = JSON.parse(rawRows);
-                    memos = rows.map(row => row.メモ内容 || '').filter(Boolean);
-                    timestamps = rows.map(row => new Date(row.タイムスタンプ)).filter(t => !isNaN(t));
-
-                    if (timestamps.length === 0) return false;
-                    const { dailyCounts, hourlyCounts, weekdayCounts } = analyzeData();
-                    renderCharts(dailyCounts, hourlyCounts, weekdayCounts);
-                    renderKeywordCards();
-                    setupKeywordSearch();
-                    setupCarousel();
-                    updateDashboardCache({ dailyCounts, hourlyCounts, weekdayCounts });
-                    return true;
-                }
-            } catch (_) { }
-            return false;
-        }
-
         function destroyCharts() {
             Object.values(charts).forEach(c => c?.destroy());
             charts = {};
@@ -836,10 +767,8 @@
             }
         });
 
-        // 初回読み込み
-        if (!loadFromCacheIfAvailable()) {
-            fetchDataFromAPI();
-        }
+        // ページ読み込み時に自動でデータを取得
+        document.addEventListener('DOMContentLoaded', fetchDataFromAPI);
     </script>
 </body>
 
