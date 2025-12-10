@@ -327,6 +327,30 @@
         }
 
         window.addEventListener('load', applyRandomPastelColor);
+        let lastClipboardText = '';
+        let isFirstClipboardEvent = true;
+
+        // クリップボード監視開始
+        function startClipboardMonitoring() {
+            navigator.clipboard.addEventListener('clipboardchange', async () => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if (isFirstClipboardEvent) {
+                        isFirstClipboardEvent = false;
+                        lastClipboardText = text;
+                        return;
+                    }
+                    if (text !== lastClipboardText && text.trim() !== '') {
+                        lastClipboardText = text;
+                        await postContent(text);
+                        if (!postOnlyMode) await fetchAllPosts();
+                    }
+                } catch (err) {
+                    console.error('クリップボードの読み取りに失敗:', err);
+                }
+            });
+        }
+
 
         const urlParams = new URLSearchParams(window.location.search);
         const postOnlyMode = urlParams.get('postonly') === 'yes';
@@ -590,15 +614,30 @@
                 const postJstDate = new Date(postDate.getTime() + jstOffset).toISOString().split('T')[0];
                 return postJstDate === jstDate;
             });
+
             if (todayPosts.length === 0) return;
-            const message = todayPosts.map(post =>
-                `${new Date(post.created_at).toLocaleTimeString()}：${post.content}`
-            ).join('\n');
-            const prompt = `これはランダムなつぶやきです。MECEに整理してください。\n\n${message}`;
-            const encodedMessage = encodeURIComponent(prompt);
-            const url = `https://chat.mistral.ai/chat?q=${encodedMessage}`;
-            window.open(url, '_blank');
+
+            // URLを除いた投稿内容を日時付きでクリップボードにコピー
+            const clipboardText = todayPosts.map(post => {
+                // URLを除去
+                const contentWithoutUrls = post.content.replace(/https?:\/\/[^\s]+/g, '');
+                return `${new Date(post.created_at).toLocaleTimeString()}：${contentWithoutUrls}`;
+            }).join('\n');
+
+            navigator.clipboard.writeText(clipboardText)
+                .then(() => {
+                    // プロンプトのみを残してMistral AIを開く
+                    const prompt = "これはランダムなつぶやきです。MECEに整理してください。";
+                    const encodedPrompt = encodeURIComponent(prompt);
+                    const url = `https://chat.mistral.ai/chat?q=${encodedPrompt}`;
+                    window.open(url, '_blank');
+                })
+                .catch(err => {
+                    console.error('クリップボードへのコピーに失敗しました:', err);
+                    alert('クリップボードへのコピーに失敗しました。');
+                });
         }
+
 
         // 検索履歴保存
         function saveSearchQuery(query) {
@@ -795,6 +834,13 @@
             if (document.visibilityState === 'visible' && !postOnlyMode) {
                 await fetchAllPosts();
             }
+        });
+        // ページロード時にクリップボード監視を開始
+        window.addEventListener('load', () => {
+            applyRandomPastelColor();
+            if (!postOnlyMode) fetchAllPosts();
+            input.focus();
+            startClipboardMonitoring(); // 追加
         });
 
     </script>
