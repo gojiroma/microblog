@@ -368,11 +368,7 @@
             } catch (e) {
                 decodedUrl = pageUrl;
             }
-            // GyazoのURLを直接画像URLに変換
-            if (decodedUrl.includes('gyazo.com/')) {
-                const gyazoId = decodedUrl.split('gyazo.com/')[1].split(/[/?#]/)[0];
-                return `https://i.gyazo.com/${gyazoId}.png`;
-            }
+
             // c.poet.blueのURLはそのまま返す
             if (decodedUrl.includes('c.poet.blue/')) {
                 return decodedUrl;
