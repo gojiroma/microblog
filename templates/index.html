@@ -394,7 +394,7 @@
             }
 
             // c.poet.blueのURLはそのまま返す
-            if (decodedUrl.includes('c.poet.blue/')) {
+            if (decodedUrl.includes('c.poet.blue/') || decodedUrl.includes('countdown.poet.blue/')) {
                 return decodedUrl;
             }
             const vid = extractYouTubeVideoId(decodedUrl);
