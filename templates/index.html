@@ -764,17 +764,57 @@
         });
 
         // postsList のクリックイベントハンドラを修正
-        postsList.addEventListener('click', async (e) => {
-            if (e.target.closest('a')) return;
+        postsList.addEventListener('mousedown', async (e) => {
+            // ミドルクリックのデフォルト動作（スクロールなど）を防ぐ
+            if (e.button === 1) e.preventDefault();
+            // 実際の処理は click イベントではなくここで一括で扱うか、あるいは click と使い分ける
+            // ここではミドルクリックの検出のために mousedown を使用し、処理を共有する
+            await handlePostClick(e);
+        });
+
+        // 共通クリックハンドラ
+        async function handlePostClick(e) {
+            if (e.target.closest('a') && e.button === 0) return;
             const postElement = e.target.closest('.post');
             if (!postElement) return;
-            if (e.target.tagName === 'A') return;
+
             const postId = postElement.getAttribute('data-id');
             if (!postId) return;
+
+            // ミドルクリック（ホイールクリック）の場合の削除処理
+            if (e.button === 1) {
+                e.preventDefault();
+                if (confirm('この投稿を削除しますか？')) {
+                    try {
+                        const response = await fetch('/delete', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: postId }),
+                        });
+                        if (response.ok) {
+                            allPosts = allPosts.filter(p => p.id != postId);
+                            renderPosts(allPosts);
+                            updatePostCount();
+                        } else {
+                            alert('削除に失敗しました。');
+                        }
+                    } catch (err) {
+                        console.error('削除エラー:', err);
+                        alert('削除エラーが発生しました。');
+                    }
+                }
+                return;
+            }
+
+            if (e.target.tagName === 'A') return;
+            // 左クリック以外は無視（削除処理などは上で処理済み）
+            if (e.button !== 0) return;
+
             const currentPost = allPosts.find(post => post.id == postId);
             if (!currentPost) return;
 
             // 検索モードの場合
+
             if (isSearchMode) {
                 // 絞り込みを解除して全件表示
                 renderPosts(allPosts);
@@ -823,7 +863,7 @@
                 applyHighlightColor(postElement, isHighlighted);
                 alert('ハイライトの更新に失敗しました。');
             }
-        });
+        }
 
 
         let showOnlyHighlighted = false;

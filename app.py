@@ -196,5 +196,25 @@ def report_thumbnail_error():
         return jsonify({"error": str(e)}), 500
 
 
+# 削除API
+@app.route("/delete", methods=["POST"])
+def delete_post():
+    try:
+        token = get_token()
+        post_id = request.json.get("id")
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            f"DELETE FROM {TABLE_NAME_POSTS} WHERE id = %s AND token = %s",
+            (post_id, token),
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     app.run(debug=True)
