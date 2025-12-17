@@ -448,16 +448,16 @@
             filterPosts('#' + hashtag);
         }
 
-        async function report404(postId) {
+        async function reportThumbnailError(postId) {
             try {
-                await fetch('/report_404', {
+                await fetch('/report_thumbnail_error', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id: postId }),
                 });
-                console.log(`Reported 404 for post ${postId}`);
+                console.log(`Reported thumbnail error for post ${postId}`);
             } catch (error) {
-                console.error('Error reporting 404:', error);
+                console.error('Error reporting thumbnail error:', error);
             }
         }
 
@@ -473,12 +473,12 @@
                         decodedUrl = url;
                     }
 
-                    if (post.is_404) {
+                    if (post.is_thumbnail_error) {
                         return `<a href="${url}" target="_blank" class="post-thumbnail-link">${decodedUrl}</a>`;
                     }
 
                     return `<a href="${url}" target="_blank" class="post-thumbnail-link" data-encoded-url="${url}">
-                <img src="${getThumbnailUrl(decodedUrl)}" alt="サムネイル" class="post-thumbnail" onerror="this.style.display='none'; this.parentNode.innerHTML='${decodedUrl}'; report404(${post.id});">
+                <img src="${getThumbnailUrl(decodedUrl)}" alt="サムネイル" class="post-thumbnail" onerror="this.style.display='none'; this.parentNode.innerHTML='${decodedUrl}'; reportThumbnailError(${post.id});">
             </a>`;
                 });
                 // ハッシュタグをリンクに置換
