@@ -32,6 +32,7 @@ def create_posts_table():
                 token VARCHAR(64) NOT NULL,
                 content TEXT NOT NULL,
                 is_highlight BOOLEAN DEFAULT FALSE,
+                is_404 BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
@@ -166,6 +167,26 @@ def highlight():
         cursor.execute(
             f"UPDATE {TABLE_NAME_POSTS} SET is_highlight = %s WHERE id = %s AND token = %s",
             (is_highlight, post_id, token),
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# 404レポートAPI
+@app.route("/report_404", methods=["POST"])
+def report_404():
+    try:
+        token = get_token()
+        post_id = request.json.get("id")
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            f"UPDATE {TABLE_NAME_POSTS} SET is_404 = TRUE WHERE id = %s AND token = %s",
+            (post_id, token),
         )
         conn.commit()
         cursor.close()

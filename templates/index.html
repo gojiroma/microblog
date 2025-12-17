@@ -448,6 +448,19 @@
             filterPosts('#' + hashtag);
         }
 
+        async function report404(postId) {
+            try {
+                await fetch('/report_404', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: postId }),
+                });
+                console.log(`Reported 404 for post ${postId}`);
+            } catch (error) {
+                console.error('Error reporting 404:', error);
+            }
+        }
+
         function renderPosts(posts) {
             postsList.innerHTML = posts.map(post => {
                 let content = post.content;
@@ -459,8 +472,13 @@
                     } catch (e) {
                         decodedUrl = url;
                     }
+
+                    if (post.is_404) {
+                        return `<a href="${url}" target="_blank" class="post-thumbnail-link">${decodedUrl}</a>`;
+                    }
+
                     return `<a href="${url}" target="_blank" class="post-thumbnail-link" data-encoded-url="${url}">
-                <img src="${getThumbnailUrl(decodedUrl)}" alt="サムネイル" class="post-thumbnail" onerror="this.style.display='none'; this.parentNode.innerHTML='${decodedUrl}';">
+                <img src="${getThumbnailUrl(decodedUrl)}" alt="サムネイル" class="post-thumbnail" onerror="this.style.display='none'; this.parentNode.innerHTML='${decodedUrl}'; report404(${post.id});">
             </a>`;
                 });
                 // ハッシュタグをリンクに置換
