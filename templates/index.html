@@ -43,24 +43,10 @@
             min-height: 100vh;
         }
 
-        #input-area {
-            margin-bottom: 20px;
-        }
-
-        #post-input {
-            width: calc(100% - 24px);
-            padding: 12px;
-            font-size: 20px;
-            border-radius: 8px;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-            font-weight: 500;
-        }
-
         #posts {
             list-style: none;
             padding: 0;
+            margin-bottom: 20px;
         }
 
         .post {
@@ -216,11 +202,6 @@
         }
 
         @media (max-width: 600px) {
-            #post-input {
-                font-size: 18px;
-                padding: 14px;
-            }
-
             .post {
                 padding: 14px;
             }
@@ -231,6 +212,20 @@
             }
         }
 
+        #input-area {
+            margin-top: 20px;
+        }
+
+        #post-input {
+            width: calc(100% - 24px);
+            padding: 12px;
+            font-size: 20px;
+            border-radius: 8px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            font-weight: 500;
+        }
 
         .post a {
             color: var(--text-color);
@@ -261,10 +256,10 @@
 </head>
 
 <body>
+    <ul id="posts"></ul>
     <div id="input-area">
         <input type="text" id="post-input" placeholder="つぶやき・検索（設定などは右クリック）" autocomplete="off">
     </div>
-    <ul id="posts"></ul>
     <!-- 既存モーダル -->
     <div id="contextModal" class="modal">
         <div class="modal-content">
@@ -351,7 +346,6 @@
             });
         }
 
-
         const urlParams = new URLSearchParams(window.location.search);
         const postOnlyMode = urlParams.get('postonly') === 'yes';
         const postParam = urlParams.get('p');
@@ -375,8 +369,6 @@
         let isSearchMode = false;
         let hideThumbnailPosts = false;
 
-
-
         // トークン取得
         function getTokenFromCookie() {
             const urlToken = urlParams.get('token');
@@ -385,6 +377,7 @@
             const tokenCookie = cookies.find(cookie => cookie.startsWith('token='));
             return tokenCookie ? tokenCookie.split('=')[1] : '';
         }
+
         function getThumbnailUrl(pageUrl) {
             let decodedUrl;
             try {
@@ -403,8 +396,6 @@
             }
             return `https://rdl.ink/render/${encodeURIComponent(decodedUrl)}?mode=fillmax&fill=solid&format=webp&width=254&ar=16:9&dpr=2.25`;
         }
-
-
 
         // YouTube動画IDを抽出
         function extractYouTubeVideoId(rawUrl) {
@@ -435,6 +426,7 @@
             if (postOnlyMode) return;
             const response = await fetch('/search?q=');
             allPosts = await response.json();
+            allPosts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); // 新しい順にソート
             renderPosts(allPosts);
             updatePostCount();
         }
@@ -442,6 +434,7 @@
         function linkifyHashtags(text) {
             return text.replace(/#(\w+)/g, '<span class="post-hashtag" onclick="inputHashtag(\'$1\')">#$1</span>');
         }
+
         // ハッシュタグをinputに代入してfilterPostsを実行
         function inputHashtag(hashtag) {
             input.value = '#' + hashtag;
@@ -475,9 +468,6 @@
         `;
             }).join('');
         }
-
-
-
 
         // 投稿数更新
         function updatePostCount() {
@@ -562,9 +552,7 @@
             });
             history.replaceState({}, '', window.location.pathname);
             if (!postOnlyMode) await fetchAllPosts();
-            // 投稿後にURLパラメータを消す
         }
-
 
         // URL表示
         function showUrlWithToken() {
@@ -638,7 +626,6 @@
                 });
         }
 
-
         // 検索履歴保存
         function saveSearchQuery(query) {
             const history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
@@ -710,13 +697,13 @@
                 };
                 allPosts = [dummyPost, ...allPosts];
                 renderPosts(allPosts);
-                input.focus(); // ここでフォーカスを戻す
+                input.focus();
                 try {
                     await postContent(content);
                 } finally {
                     input.disabled = false;
                     isPosting = false;
-                    input.focus(); // 非同期処理完了後にもフォーカスを戻す
+                    input.focus();
                 }
             }
         });
@@ -730,7 +717,6 @@
             // Xの投稿画面を開く
             window.open(`https://x.com/intent/post?text=${encodeURIComponent(postContent)}`, '_blank');
         });
-
 
         // inputのダブルクリックイベント
         input.addEventListener('dblclick', () => {
@@ -807,7 +793,6 @@
             }
         });
 
-
         let showOnlyHighlighted = false;
         input.addEventListener('click', () => {
             if (input.value.trim() === '') {
@@ -840,11 +825,9 @@
             applyRandomPastelColor();
             if (!postOnlyMode) fetchAllPosts();
             input.focus();
-            startClipboardMonitoring(); // 追加
+            startClipboardMonitoring();
         });
-
     </script>
-
 </body>
 
 </html>
