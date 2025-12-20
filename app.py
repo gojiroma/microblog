@@ -32,6 +32,7 @@ def create_posts_table():
                 token VARCHAR(64) NOT NULL,
                 content TEXT NOT NULL,
                 is_highlight BOOLEAN DEFAULT FALSE,
+                is_thumbnail_error BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
@@ -166,6 +167,46 @@ def highlight():
         cursor.execute(
             f"UPDATE {TABLE_NAME_POSTS} SET is_highlight = %s WHERE id = %s AND token = %s",
             (is_highlight, post_id, token),
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# サムネイルエラーレポートAPI
+@app.route("/report_thumbnail_error", methods=["POST"])
+def report_thumbnail_error():
+    try:
+        token = get_token()
+        post_id = request.json.get("id")
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            f"UPDATE {TABLE_NAME_POSTS} SET is_thumbnail_error = TRUE WHERE id = %s AND token = %s",
+            (post_id, token),
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# 削除API
+@app.route("/delete", methods=["POST"])
+def delete_post():
+    try:
+        token = get_token()
+        post_id = request.json.get("id")
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            f"DELETE FROM {TABLE_NAME_POSTS} WHERE id = %s AND token = %s",
+            (post_id, token),
         )
         conn.commit()
         cursor.close()
