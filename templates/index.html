@@ -261,6 +261,25 @@
             transform: scale(var(--hover-scale));
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
+
+        .copy-filtered-button {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--button-bg-color);
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 16px;
+            margin: 20px auto;
+            display: block;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .copy-filtered-button:hover {
+            transform: scale(var(--hover-scale));
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
     </style>
 </head>
 
@@ -445,37 +464,41 @@
             }
         }
 
-        function renderPosts() {
-            let filteredPosts = [];
-            switch (currentMode) {
-                case '通常モード':
-                    filteredPosts = allPosts.filter(post => !(post.content.startsWith('http://') || post.content.startsWith('https://')));
-                    break;
-                case 'ハイライト':
-                    filteredPosts = allPosts.filter(post => post.is_highlight);
-                    break;
-                case 'フル表示':
-                    filteredPosts = allPosts;
-                    break;
-                case '設定':
-                    postsList.innerHTML = `
-                        <div class="settings-container">
-                            <button id="showUrlBtnInSettings" class="settings-button">🔗 引き継ぎURLを表示</button>
-                            <button id="downloadCsvBtnInSettings" class="settings-button">📥 データをダウンロード</button>
-                            <button id="statsBtnInSettings" class="settings-button">📈 統計を表示</button>
-                            <button id="sendTodayPostsBtnInSettings" class="settings-button">📤 新しいつぶやきをMemoriesに送信</button>
-                        </div>
-                    `;
-                    document.getElementById('showUrlBtnInSettings').addEventListener('click', showUrlWithToken);
-                    document.getElementById('downloadCsvBtnInSettings').addEventListener('click', downloadCsv);
-                    document.getElementById('statsBtnInSettings').addEventListener('click', goToStats);
-                    document.getElementById('sendTodayPostsBtnInSettings').addEventListener('click', sendNewPostsToMemories);
-                    return;
-                default:
-                    filteredPosts = allPosts;
+        function renderPosts(filteredPosts = null) {
+            let postsToRender = [];
+            if (filteredPosts) {
+                postsToRender = filteredPosts;
+            } else {
+                switch (currentMode) {
+                    case '通常モード':
+                        postsToRender = allPosts.filter(post => !(post.content.startsWith('http://') || post.content.startsWith('https://')));
+                        break;
+                    case 'ハイライト':
+                        postsToRender = allPosts.filter(post => post.is_highlight);
+                        break;
+                    case 'フル表示':
+                        postsToRender = allPosts;
+                        break;
+                    case '設定':
+                        postsList.innerHTML = `
+                            <div class="settings-container">
+                                <button id="showUrlBtnInSettings" class="settings-button">🔗 引き継ぎURLを表示</button>
+                                <button id="downloadCsvBtnInSettings" class="settings-button">📥 データをダウンロード</button>
+                                <button id="statsBtnInSettings" class="settings-button">📈 統計を表示</button>
+                                <button id="sendTodayPostsBtnInSettings" class="settings-button">📤 新しいつぶやきをMemoriesに送信</button>
+                            </div>
+                        `;
+                        document.getElementById('showUrlBtnInSettings').addEventListener('click', showUrlWithToken);
+                        document.getElementById('downloadCsvBtnInSettings').addEventListener('click', downloadCsv);
+                        document.getElementById('statsBtnInSettings').addEventListener('click', goToStats);
+                        document.getElementById('sendTodayPostsBtnInSettings').addEventListener('click', sendNewPostsToMemories);
+                        return;
+                    default:
+                        postsToRender = allPosts;
+                }
             }
 
-            postsList.innerHTML = filteredPosts.map(post => {
+            postsList.innerHTML = postsToRender.map(post => {
                 let content = post.content;
                 content = content.replace(/((https?:\/\/[^\s]+))/g, (match, url) => {
                     let decodedUrl;
@@ -503,6 +526,14 @@
                     </li>
                 `;
             }).join('');
+
+            if (isSearchMode && filteredPosts) {
+                const copyButton = document.createElement('button');
+                copyButton.className = 'copy-filtered-button';
+                copyButton.textContent = 'フィルターした投稿をコピー';
+                copyButton.addEventListener('click', () => copyFilteredPosts(filteredPosts));
+                postsList.appendChild(copyButton);
+            }
         }
 
         function updatePlaceholder() {
@@ -594,34 +625,19 @@
                 }
             });
 
-            postsList.innerHTML = filtered.map(post => {
-                let content = post.content;
-                content = content.replace(/((https?:\/\/[^\s]+))/g, (match, url) => {
-                    let decodedUrl;
-                    try {
-                        decodedUrl = decodeURIComponent(url);
-                    } catch (e) {
-                        decodedUrl = url;
-                    }
+            renderPosts(filtered);
+        }
 
-                    if (post.is_thumbnail_error) {
-                        return `<a href="${url}" target="_blank" class="post-thumbnail-link">${decodedUrl}</a>`;
-                    }
+        function copyFilteredPosts(filteredPosts) {
+            const formattedPosts = filteredPosts.map(post => {
+                const date = new Date(post.created_at);
+                const formattedDate = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+                return `${formattedDate}：${post.content}`;
+            }).join('\n');
 
-                    return `<a href="${url}" target="_blank" class="post-thumbnail-link" data-encoded-url="${url}">
-                        <img src="${getThumbnailUrl(decodedUrl)}" alt="サムネイル" class="post-thumbnail" onerror="this.style.display='none'; this.parentNode.innerHTML='${decodedUrl}'; reportThumbnailError(${post.id});">
-                    </a>`;
-                });
-                content = linkifyHashtags(content);
-                return `
-                    <li class="post ${post.is_highlight ? 'highlight' : ''}"
-                        data-time="${new Date(post.created_at).toLocaleString()}"
-                        data-id="${post.id}"
-                        style="${post.is_highlight ? `background-color: ${post.highlight_color || ''};` : ''}">
-                        ${content}
-                    </li>
-                `;
-            }).join('');
+            navigator.clipboard.writeText(formattedPosts)
+                .then(() => alert('フィルターした投稿をクリップボードにコピーしました。'))
+                .catch(err => console.error('コピーに失敗しました:', err));
         }
 
         async function postContent(content) {
@@ -680,7 +696,9 @@
             if (postsToSend.length === 0) return;
 
             const clipboardText = postsToSend.map(post => {
-                return `${new Date(post.created_at).toLocaleString()}：${post.content}`;
+                const date = new Date(post.created_at);
+                const formattedDate = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+                return `${formattedDate}：${post.content}`;
             }).join('\n');
 
             try {
