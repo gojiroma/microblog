@@ -667,13 +667,6 @@
             cycleMode();
         });
 
-        postsList.addEventListener('dblclick', (e) => {
-            if (e.target.closest('a')) return;
-            const postElement = e.target.closest('.post');
-            if (!postElement) return;
-            const postContent = postElement.textContent.trim();
-            window.open(`https://x.com/intent/post?text=${encodeURIComponent(postContent)}`, '_blank');
-        });
 
         postsList.addEventListener('mousedown', async (e) => {
             if (e.button === 1) e.preventDefault();
