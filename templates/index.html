@@ -382,12 +382,15 @@
             } else {
                 switch (currentMode) {
                     case '独り言':
-                        const pinnedPosts = allPosts.filter(post => post.is_highlight && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
-                        const normalPosts = allPosts.filter(post => !post.is_highlight && !(post.content.startsWith('http://') || post.content.startsWith('https://') || post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')));
+                        const pinnedPosts = allPosts.filter(post => post.is_pin && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
+                        const normalPosts = allPosts.filter(post => !post.is_pin && !(post.content.startsWith('http://') || post.content.startsWith('https://') || post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')));
                         postsToRender = [...pinnedPosts, ...normalPosts];
                         break;
                     case 'すべてのsays':
                         postsToRender = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
+                        break;
+                    case 'ピン':
+                        postsToRender = allPosts.filter(post => post.is_pin && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
                         break;
                     case '設定':
                         postsList.innerHTML = `
@@ -428,12 +431,12 @@
                     </a>`;
                 });
                 content = linkifyHashtags(content);
-                const pinColor = post.is_highlight ? post.highlight_color || getRandomPinColor() : '';
+                const pinColor = post.is_pin ? post.pin_color || getRandomPinColor() : '';
                 return `
-                    <li class="post ${post.is_highlight ? 'pin' : ''}"
+                    <li class="post ${post.is_pin ? 'pin' : ''}"
                         data-time="${new Date(post.created_at).toLocaleString()}"
                         data-id="${post.id}"
-                        style="${post.is_highlight ? `background-color: ${pinColor};` : ''}">
+                        style="${post.is_pin ? `background-color: ${pinColor};` : ''}">
                         ${content}
                     </li>
                 `;
@@ -466,6 +469,10 @@
                 case 'すべてのsays':
                     count = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')).length;
                     placeholderText = `${count}件のsays`;
+                    break;
+                case 'ピン':
+                    count = allPosts.filter(post => post.is_pin && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')).length;
+                    placeholderText = `${count}件のピン`;
                     break;
                 case '設定':
                     placeholderText = '設定';
@@ -552,19 +559,13 @@
         }
 
         async function postContent(content) {
-            const response = await fetch('/post', {
+            await fetch('/post', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content }),
             });
-            const newPost = await response.json();
-            allPosts = [newPost, ...allPosts];
             history.replaceState({}, '', window.location.pathname);
-            currentMode = '独り言';
-            isSearchMode = false;
-            input.value = '';
-            renderPosts();
-            updatePlaceholder();
+            if (!postOnlyMode) await fetchAllPosts();
         }
 
         function showUrlWithToken() {
@@ -627,7 +628,7 @@
         }
 
         function cycleMode() {
-            const modes = ['独り言', 'すべてのsays', '設定'];
+            const modes = ['独り言', 'すべてのsays', 'ピン', '設定'];
             const currentIndex = modes.indexOf(currentMode);
             currentMode = modes[(currentIndex + 1) % modes.length];
             input.value = '';
@@ -642,12 +643,33 @@
                 input.value = '';
                 input.disabled = true;
                 isPosting = true;
+                const dummyPost = {
+                    content: content,
+                    created_at: new Date().toISOString(),
+                    id: Date.now(),
+                    is_pin: false
+                };
+                allPosts = [dummyPost, ...allPosts];
+                renderPosts();
+                input.focus();
                 try {
                     await postContent(content);
-                    input.focus();
+                    if (content.includes('http://') || content.includes('https://')) {
+                        currentMode = 'すべてのsays';
+                    } else {
+                        currentMode = '独り言';
+                    }
+                    renderPosts();
+                    updatePlaceholder();
+                    if (postParam) {
+                        setTimeout(() => {
+                            window.close();
+                        }, 10000);
+                    }
                 } finally {
                     input.disabled = false;
                     isPosting = false;
+                    input.focus();
                 }
             }
         });
@@ -721,7 +743,7 @@
                 return;
             }
 
-            const isPinned = currentPost.is_highlight;
+            const isPinned = currentPost.is_pin;
             const willBePinned = !isPinned;
             if (willBePinned) {
                 const utterance = new SpeechSynthesisUtterance(currentPost.content);
@@ -731,21 +753,23 @@
             postElement.style.backgroundColor = willBePinned ? pinColor : '';
             try {
                 await navigator.clipboard.writeText(currentPost.content);
-                const response = await fetch('/highlight', {
+            } catch (err) {
+                console.error('Failed to copy:', err);
+            }
+            try {
+                const response = await fetch('/pin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: postId, is_highlight: willBePinned, highlight_color: pinColor }),
+                    body: JSON.stringify({ id: postId, is_pin: willBePinned, pin_color: pinColor }),
                 });
                 if (response.ok) {
-                    currentPost.is_highlight = willBePinned;
-                    currentPost.highlight_color = pinColor;
+                    currentPost.is_pin = willBePinned;
+                    currentPost.pin_color = pinColor;
                     if (!willBePinned) {
                         postElement.classList.add('fade-out');
                         setTimeout(() => {
                             renderPosts();
                         }, 500);
-                    } else {
-                        renderPosts();
                     }
                 } else {
                     postElement.style.backgroundColor = isPinned ? pinColor : '';
