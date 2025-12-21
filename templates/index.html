@@ -750,7 +750,7 @@
                 console.error('Failed to copy:', err);
             }
             try {
-                const response = await fetch('/pin', {
+                const response = await fetch('/highlight', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id: postId, is_highlight: willBePinned, pin_color: pinColor }),
