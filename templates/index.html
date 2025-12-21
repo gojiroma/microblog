@@ -560,7 +560,9 @@
             const newPost = await response.json();
             allPosts = [newPost, ...allPosts];
             history.replaceState({}, '', window.location.pathname);
+            currentMode = '独り言';
             renderPosts();
+            updatePlaceholder();
         }
 
         function showUrlWithToken() {
@@ -640,22 +642,10 @@
                 isPosting = true;
                 try {
                     await postContent(content);
-                    if (content.includes('http://') || content.includes('https://')) {
-                        currentMode = 'すべてのsays';
-                    } else {
-                        currentMode = '独り言';
-                    }
-                    renderPosts();
-                    updatePlaceholder();
-                    if (postParam) {
-                        setTimeout(() => {
-                            window.close();
-                        }, 10000);
-                    }
+                    input.focus();
                 } finally {
                     input.disabled = false;
                     isPosting = false;
-                    input.focus();
                 }
             }
         });
