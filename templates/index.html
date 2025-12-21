@@ -80,16 +80,24 @@
             position: relative;
             background-color: var(--post-bg-color);
             color: var(--text-color);
-            transition: transform 0.1s ease;
+            transition: transform 0.1s ease, opacity 0.5s ease;
             font-size: larger;
             word-wrap: break-word;
+        }
+
+        .post.fade-out {
+            opacity: 0;
+            height: 0;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
         }
 
         .post:hover {
             transform: scale(1.01);
         }
 
-        .post.highlight {
+        .post.pin {
             font-weight: bold;
         }
 
@@ -238,6 +246,19 @@
             }
         }
 
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        document.body.addEventListener('click', (e) => {
+            const bodyRect = document.body.getBoundingClientRect();
+            const clickY = e.clientY - bodyRect.top;
+            const bodyHeight = bodyRect.height;
+            if (clickY < bodyHeight / 2) {
+                scrollToTop();
+            }
+        });
+
         applyRandomPastelColor();
         let lastClipboardText = '';
         let isFirstClipboardEvent = true;
@@ -361,13 +382,15 @@
             } else {
                 switch (currentMode) {
                     case '独り言':
-                        postsToRender = allPosts.filter(post => !(post.content.startsWith('http://') || post.content.startsWith('https://') || post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')));
+                        const pinnedPosts = allPosts.filter(post => post.is_pin && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
+                        const normalPosts = allPosts.filter(post => !post.is_pin && !(post.content.startsWith('http://') || post.content.startsWith('https://') || post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')));
+                        postsToRender = [...pinnedPosts, ...normalPosts];
                         break;
                     case 'すべてのsays':
                         postsToRender = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
                         break;
-                    case 'ハイライト':
-                        postsToRender = allPosts.filter(post => post.is_highlight && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
+                    case 'ピン':
+                        postsToRender = allPosts.filter(post => post.is_pin && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
                         break;
                     case '設定':
                         postsList.innerHTML = `
@@ -408,12 +431,12 @@
                     </a>`;
                 });
                 content = linkifyHashtags(content);
-                const highlightColor = post.is_highlight ? post.highlight_color || getRandomHighlightColor() : '';
+                const pinColor = post.is_pin ? post.pin_color || getRandomPinColor() : '';
                 return `
-                    <li class="post ${post.is_highlight ? 'highlight' : ''}"
+                    <li class="post ${post.is_pin ? 'pin' : ''}"
                         data-time="${new Date(post.created_at).toLocaleString()}"
                         data-id="${post.id}"
-                        style="${post.is_highlight ? `background-color: ${highlightColor};` : ''}">
+                        style="${post.is_pin ? `background-color: ${pinColor};` : ''}">
                         ${content}
                     </li>
                 `;
@@ -428,7 +451,7 @@
             }
         }
 
-        function getRandomHighlightColor() {
+        function getRandomPinColor() {
             const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
             const pastelColors = isDarkMode ? darkPastelColors : lightPastelColors;
             const shuffledColors = shuffleArray([...pastelColors]);
@@ -447,9 +470,9 @@
                     count = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')).length;
                     placeholderText = `${count}件のsays`;
                     break;
-                case 'ハイライト':
-                    count = allPosts.filter(post => post.is_highlight && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')).length;
-                    placeholderText = `${count}件のハイライト`;
+                case 'ピン':
+                    count = allPosts.filter(post => post.is_pin && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')).length;
+                    placeholderText = `${count}件のピン`;
                     break;
                 case '設定':
                     placeholderText = '設定';
@@ -605,7 +628,7 @@
         }
 
         function cycleMode() {
-            const modes = ['独り言', 'すべてのsays', 'ハイライト', '設定'];
+            const modes = ['独り言', 'すべてのsays', 'ピン', '設定'];
             const currentIndex = modes.indexOf(currentMode);
             currentMode = modes[(currentIndex + 1) % modes.length];
             input.value = '';
@@ -624,13 +647,25 @@
                     content: content,
                     created_at: new Date().toISOString(),
                     id: Date.now(),
-                    is_highlight: false
+                    is_pin: false
                 };
                 allPosts = [dummyPost, ...allPosts];
                 renderPosts();
                 input.focus();
                 try {
                     await postContent(content);
+                    if (content.includes('http://') || content.includes('https://')) {
+                        currentMode = 'すべてのsays';
+                    } else {
+                        currentMode = '独り言';
+                    }
+                    renderPosts();
+                    updatePlaceholder();
+                    if (postParam) {
+                        setTimeout(() => {
+                            window.close();
+                        }, 10000);
+                    }
                 } finally {
                     input.disabled = false;
                     isPosting = false;
@@ -700,44 +735,50 @@
                 const targetElement = Array.from(allPostElements).find(el => el.getAttribute('data-id') == postId);
                 if (targetElement) {
                     targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    targetElement.classList.add('highlight');
+                    targetElement.classList.add('pin');
                     setTimeout(() => {
-                        targetElement.classList.remove('highlight');
+                        targetElement.classList.remove('pin');
                     }, 2000);
                 }
                 return;
             }
 
-            const isHighlighted = currentPost.is_highlight;
-            const willBeHighlighted = !isHighlighted;
-            if (willBeHighlighted) {
+            const isPinned = currentPost.is_pin;
+            const willBePinned = !isPinned;
+            if (willBePinned) {
                 const utterance = new SpeechSynthesisUtterance(currentPost.content);
                 window.speechSynthesis.speak(utterance);
             }
-            const highlightColor = getRandomHighlightColor();
-            postElement.style.backgroundColor = willBeHighlighted ? highlightColor : '';
+            const pinColor = getRandomPinColor();
+            postElement.style.backgroundColor = willBePinned ? pinColor : '';
             try {
                 await navigator.clipboard.writeText(currentPost.content);
             } catch (err) {
                 console.error('Failed to copy:', err);
             }
             try {
-                const response = await fetch('/highlight', {
+                const response = await fetch('/pin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: postId, is_highlight: willBeHighlighted, highlight_color: highlightColor }),
+                    body: JSON.stringify({ id: postId, is_pin: willBePinned, pin_color: pinColor }),
                 });
                 if (response.ok) {
-                    currentPost.is_highlight = willBeHighlighted;
-                    currentPost.highlight_color = highlightColor;
+                    currentPost.is_pin = willBePinned;
+                    currentPost.pin_color = pinColor;
+                    if (!willBePinned) {
+                        postElement.classList.add('fade-out');
+                        setTimeout(() => {
+                            renderPosts();
+                        }, 500);
+                    }
                 } else {
-                    postElement.style.backgroundColor = isHighlighted ? highlightColor : '';
-                    alert('ハイライトの更新に失敗しました。');
+                    postElement.style.backgroundColor = isPinned ? pinColor : '';
+                    alert('ピンの更新に失敗しました。');
                 }
             } catch (error) {
-                console.error('Error updating highlight:', error);
-                postElement.style.backgroundColor = isHighlighted ? highlightColor : '';
-                alert('ハイライトの更新に失敗しました。');
+                console.error('Error updating pin:', error);
+                postElement.style.backgroundColor = isPinned ? pinColor : '';
+                alert('ピンの更新に失敗しました。');
             }
         }
 
