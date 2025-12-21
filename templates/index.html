@@ -439,6 +439,11 @@
                 `;
             }).join('');
 
+            // フィルター結果が1件かつURLのみの場合、自動で開く
+            if (filteredPosts && filteredPosts.length === 1 && (filteredPosts[0].content.startsWith('http://') || filteredPosts[0].content.startsWith('https://'))) {
+                window.open(filteredPosts[0].content, '_blank');
+            }
+
             if (isSearchMode && filteredPosts && filteredPosts.length > 0) {
                 const copyButton = document.createElement('button');
                 copyButton.className = 'copy-filtered-button';
@@ -536,6 +541,11 @@
                 }
             });
 
+            // フィルター結果が1件かつURLのみの場合、自動で開く
+            if (filtered.length === 1 && (filtered[0].content.startsWith('http://') || filtered[0].content.startsWith('https://'))) {
+                window.open(filtered[0].content, '_blank');
+            }
+
             renderPosts(filtered);
         }
 
@@ -621,7 +631,7 @@
         }
 
         function cycleMode() {
-            const modes = ['独り言', 'すべてのsays',  '設定'];
+            const modes = ['独り言', 'すべてのsays', '設定'];
             const currentIndex = modes.indexOf(currentMode);
             currentMode = modes[(currentIndex + 1) % modes.length];
             input.value = '';
