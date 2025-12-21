@@ -745,6 +745,9 @@
         if (postParam) {
             input.value = postParam;
             const event = new KeyboardEvent('keydown', { key: 'Enter' });
+            if (postParam.includes('http://') || postParam.includes('https://')) {
+                currentMode = 'すべてのsays';
+            }
             input.dispatchEvent(event);
         }
 
