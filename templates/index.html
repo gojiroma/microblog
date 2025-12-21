@@ -552,13 +552,15 @@
         }
 
         async function postContent(content) {
-            await fetch('/post', {
+            const response = await fetch('/post', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content }),
             });
+            const newPost = await response.json();
+            allPosts = [newPost, ...allPosts];
             history.replaceState({}, '', window.location.pathname);
-            if (!postOnlyMode) await fetchAllPosts();
+            renderPosts();
         }
 
         function showUrlWithToken() {
@@ -636,15 +638,6 @@
                 input.value = '';
                 input.disabled = true;
                 isPosting = true;
-                const dummyPost = {
-                    content: content,
-                    created_at: new Date().toISOString(),
-                    id: Date.now(),
-                    is_highlight: false
-                };
-                allPosts = [dummyPost, ...allPosts];
-                renderPosts();
-                input.focus();
                 try {
                     await postContent(content);
                     if (content.includes('http://') || content.includes('https://')) {
@@ -746,10 +739,6 @@
             postElement.style.backgroundColor = willBePinned ? pinColor : '';
             try {
                 await navigator.clipboard.writeText(currentPost.content);
-            } catch (err) {
-                console.error('Failed to copy:', err);
-            }
-            try {
                 const response = await fetch('/highlight', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -763,6 +752,8 @@
                         setTimeout(() => {
                             renderPosts();
                         }, 500);
+                    } else {
+                        renderPosts();
                     }
                 } else {
                     postElement.style.backgroundColor = isPinned ? pinColor : '';
