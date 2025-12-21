@@ -551,13 +551,23 @@
                 .catch(err => console.error('コピーに失敗しました:', err));
         }
 
-        async function postContent(content) {
+        async function postContent(content, isPinned = false) {
             const response = await fetch('/post', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content }),
             });
             const newPost = await response.json();
+            if (isPinned) {
+                const pinColor = getRandomPinColor();
+                newPost.is_highlight = true;
+                newPost.highlight_color = pinColor;
+                await fetch('/highlight', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: newPost.id, is_highlight: true, highlight_color: pinColor }),
+                });
+            }
             allPosts = [newPost, ...allPosts];
             history.replaceState({}, '', window.location.pathname);
             renderPosts();
@@ -639,7 +649,8 @@
                 input.disabled = true;
                 isPosting = true;
                 try {
-                    await postContent(content);
+                    const isPinned = e.shiftKey;
+                    await postContent(content, isPinned);
                     if (content.includes('http://') || content.includes('https://')) {
                         currentMode = 'すべてのsays';
                     } else {
