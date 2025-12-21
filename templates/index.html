@@ -367,7 +367,7 @@
         let isPosting = false;
         let isSearchMode = false;
         let hideThumbnailPosts = false;
-        let currentMode = '通常モード'; // デフォルトモード
+        let currentMode = '通常モード';
 
         function getTokenFromCookie() {
             const urlToken = urlParams.get('token');
@@ -460,16 +460,16 @@
                 case '設定':
                     postsList.innerHTML = `
                         <div class="settings-container">
-                            <button id="showUrlBtn" class="settings-button">🔗 引き継ぎURLを表示</button>
-                            <button id="downloadCsvBtn" class="settings-button">📥 データをダウンロード</button>
-                            <button id="statsBtn" class="settings-button">📈 統計を表示</button>
-                            <button id="sendTodayPostsBtn" class="settings-button">📤 新しいつぶやきをMemoriesに送信</button>
+                            <button id="showUrlBtnInSettings" class="settings-button">🔗 引き継ぎURLを表示</button>
+                            <button id="downloadCsvBtnInSettings" class="settings-button">📥 データをダウンロード</button>
+                            <button id="statsBtnInSettings" class="settings-button">📈 統計を表示</button>
+                            <button id="sendTodayPostsBtnInSettings" class="settings-button">📤 新しいつぶやきをMemoriesに送信</button>
                         </div>
                     `;
-                    document.getElementById('showUrlBtn').addEventListener('click', showUrlWithToken);
-                    document.getElementById('downloadCsvBtn').addEventListener('click', downloadCsv);
-                    document.getElementById('statsBtn').addEventListener('click', goToStats);
-                    document.getElementById('sendTodayPostsBtn').addEventListener('click', sendNewPostsToMemories);
+                    document.getElementById('showUrlBtnInSettings').addEventListener('click', showUrlWithToken);
+                    document.getElementById('downloadCsvBtnInSettings').addEventListener('click', downloadCsv);
+                    document.getElementById('statsBtnInSettings').addEventListener('click', goToStats);
+                    document.getElementById('sendTodayPostsBtnInSettings').addEventListener('click', sendNewPostsToMemories);
                     return;
                 default:
                     filteredPosts = allPosts;
@@ -649,11 +649,11 @@
                 alert('投稿専用モードではデータをダウンロードできません。');
                 return;
             }
-            const csvHeader = ['タイムスタンプ,メモ内容'];
+            const csvHeader = ['タイムスタンプ', 'メモ内容'];
             const csvRows = allPosts.map(post =>
-                `"${new Date(post.created_at).toLocaleString()}",${post.content.replace(/\"/g, '""')}"`
+                `"${new Date(post.created_at).toLocaleString()}",${post.content.replace(/"/g, '""')}`
             );
-            const csvContent = [...csvHeader, ...csvRows].join('\n');
+            const csvContent = [csvHeader.join(','), ...csvRows].join('\n');
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
