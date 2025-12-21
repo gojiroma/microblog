@@ -408,8 +408,10 @@
                         return `<a href="${url}" target="_blank" class="post-thumbnail-link">${decodedUrl}</a>`;
                     }
 
-                    return `<a href="${url}" target="_blank" class="post-thumbnail-link">
-                        <img src="${getThumbnailUrl(decodedUrl)}" alt="サムネイル" class="post-thumbnail" onerror="this.style.display='none'; this.parentNode.innerHTML='<a href=\\"${url}\\" target=\\"_blank\\">${decodedUrl}</a>'; reportThumbnailError(${post.id});">
+                    const escapedUrl = url.replace(/"/g, '&quot;');
+                    const escapedDecodedUrl = decodedUrl.replace(/"/g, '&quot;');
+                    return `<a href="${escapedUrl}" target="_blank" class="post-thumbnail-link">
+                        <img src="${getThumbnailUrl(decodedUrl)}" alt="サムネイル" class="post-thumbnail" onerror="this.style.display='none'; this.parentNode.innerHTML='<a href=&quot;${escapedUrl}&quot; target=&quot;_blank&quot;>${escapedDecodedUrl}</a>'; reportThumbnailError(${post.id});">
                     </a>`;
                 });
                 const pinColor = post.is_highlight ? post.pin_color || getRandomPinColor() : '';
