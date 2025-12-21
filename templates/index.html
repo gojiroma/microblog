@@ -237,12 +237,36 @@
             cursor: pointer;
             text-decoration: underline;
         }
+
+        .settings-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .settings-button {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--button-bg-color);
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .settings-button:hover {
+            transform: scale(var(--hover-scale));
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
     </style>
 </head>
 
 <body>
     <div id="input-area">
-        <input type="text" id="post-input" placeholder="つぶやき・検索（設定などは右クリック）" autocomplete="off">
+        <input type="text" id="post-input" placeholder="つぶやき・検索" autocomplete="off">
     </div>
     <ul id="posts"></ul>
     <div id="contextModal" class="modal">
@@ -343,6 +367,7 @@
         let isPosting = false;
         let isSearchMode = false;
         let hideThumbnailPosts = false;
+        let currentMode = '通常モード'; // デフォルトモード
 
         function getTokenFromCookie() {
             const urlToken = urlParams.get('token');
@@ -394,8 +419,8 @@
             if (postOnlyMode) return;
             const response = await fetch('/search?q=');
             allPosts = await response.json();
-            renderPosts(allPosts);
-            updatePostCount();
+            renderPosts();
+            updatePlaceholder();
         }
 
         function linkifyHashtags(text) {
@@ -420,8 +445,37 @@
             }
         }
 
-        function renderPosts(posts) {
-            postsList.innerHTML = posts.map(post => {
+        function renderPosts() {
+            let filteredPosts = [];
+            switch (currentMode) {
+                case '通常モード':
+                    filteredPosts = allPosts.filter(post => !(post.content.startsWith('http://') || post.content.startsWith('https://')));
+                    break;
+                case 'ハイライト':
+                    filteredPosts = allPosts.filter(post => post.is_highlight);
+                    break;
+                case 'フル表示':
+                    filteredPosts = allPosts;
+                    break;
+                case '設定':
+                    postsList.innerHTML = `
+                        <div class="settings-container">
+                            <button id="showUrlBtn" class="settings-button">🔗 引き継ぎURLを表示</button>
+                            <button id="downloadCsvBtn" class="settings-button">📥 データをダウンロード</button>
+                            <button id="statsBtn" class="settings-button">📈 統計を表示</button>
+                            <button id="sendTodayPostsBtn" class="settings-button">📤 新しいつぶやきをMemoriesに送信</button>
+                        </div>
+                    `;
+                    document.getElementById('showUrlBtn').addEventListener('click', showUrlWithToken);
+                    document.getElementById('downloadCsvBtn').addEventListener('click', downloadCsv);
+                    document.getElementById('statsBtn').addEventListener('click', goToStats);
+                    document.getElementById('sendTodayPostsBtn').addEventListener('click', sendNewPostsToMemories);
+                    return;
+                default:
+                    filteredPosts = allPosts;
+            }
+
+            postsList.innerHTML = filteredPosts.map(post => {
                 let content = post.content;
                 content = content.replace(/((https?:\/\/[^\s]+))/g, (match, url) => {
                     let decodedUrl;
@@ -451,13 +505,36 @@
             }).join('');
         }
 
+        function updatePlaceholder() {
+            let count = 0;
+            let placeholderText = '';
+            switch (currentMode) {
+                case '通常モード':
+                    count = allPosts.filter(post => !(post.content.startsWith('http://') || post.content.startsWith('https://'))).length;
+                    placeholderText = `${count}件の独り言`;
+                    break;
+                case 'ハイライト':
+                    count = allPosts.filter(post => post.is_highlight).length;
+                    placeholderText = `${count}件のハイライト`;
+                    break;
+                case 'フル表示':
+                    count = allPosts.length;
+                    placeholderText = `${count}件のsays`;
+                    break;
+                case '設定':
+                    placeholderText = '設定';
+                    break;
+            }
+            input.placeholder = placeholderText;
+        }
+
         function updatePostCount() {
             postCountElement.textContent = `${allPosts.length} Posts`;
         }
 
         function filterPosts(query) {
             if (postOnlyMode || !query) {
-                if (!postOnlyMode) renderPosts(allPosts);
+                if (!postOnlyMode) renderPosts();
                 isSearchMode = false;
                 return;
             }
@@ -517,7 +594,34 @@
                 }
             });
 
-            renderPosts(filtered);
+            postsList.innerHTML = filtered.map(post => {
+                let content = post.content;
+                content = content.replace(/((https?:\/\/[^\s]+))/g, (match, url) => {
+                    let decodedUrl;
+                    try {
+                        decodedUrl = decodeURIComponent(url);
+                    } catch (e) {
+                        decodedUrl = url;
+                    }
+
+                    if (post.is_thumbnail_error) {
+                        return `<a href="${url}" target="_blank" class="post-thumbnail-link">${decodedUrl}</a>`;
+                    }
+
+                    return `<a href="${url}" target="_blank" class="post-thumbnail-link" data-encoded-url="${url}">
+                        <img src="${getThumbnailUrl(decodedUrl)}" alt="サムネイル" class="post-thumbnail" onerror="this.style.display='none'; this.parentNode.innerHTML='${decodedUrl}'; reportThumbnailError(${post.id});">
+                    </a>`;
+                });
+                content = linkifyHashtags(content);
+                return `
+                    <li class="post ${post.is_highlight ? 'highlight' : ''}"
+                        data-time="${new Date(post.created_at).toLocaleString()}"
+                        data-id="${post.id}"
+                        style="${post.is_highlight ? `background-color: ${post.highlight_color || ''};` : ''}">
+                        ${content}
+                    </li>
+                `;
+            }).join('');
         }
 
         async function postContent(content) {
@@ -603,6 +707,15 @@
             }
         }
 
+        function cycleMode() {
+            const modes = ['通常モード', 'ハイライト', 'フル表示', '設定'];
+            const currentIndex = modes.indexOf(currentMode);
+            currentMode = modes[(currentIndex + 1) % modes.length];
+            input.value = '';
+            renderPosts();
+            updatePlaceholder();
+        }
+
         document.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             urlContent.style.display = 'none';
@@ -633,7 +746,7 @@
                     is_highlight: false
                 };
                 allPosts = [dummyPost, ...allPosts];
-                renderPosts(allPosts);
+                renderPosts();
                 input.focus();
                 try {
                     await postContent(content);
@@ -645,24 +758,16 @@
             }
         });
 
+        input.addEventListener('click', () => {
+            cycleMode();
+        });
+
         postsList.addEventListener('dblclick', (e) => {
             if (e.target.closest('a')) return;
             const postElement = e.target.closest('.post');
             if (!postElement) return;
             const postContent = postElement.textContent.trim();
             window.open(`https://x.com/intent/post?text=${encodeURIComponent(postContent)}`, '_blank');
-        });
-
-        input.addEventListener('dblclick', () => {
-            hideThumbnailPosts = !hideThumbnailPosts;
-            if (hideThumbnailPosts) {
-                const filteredPosts = allPosts.filter(post =>
-                    !(post.content.startsWith('http://') || post.content.startsWith('https://'))
-                );
-                renderPosts(filteredPosts);
-            } else {
-                renderPosts(allPosts);
-            }
         });
 
         postsList.addEventListener('mousedown', async (e) => {
@@ -678,8 +783,7 @@
             const postId = postElement.getAttribute('data-id');
             if (!postId) return;
 
-            if (e.button === 1) {
-                e.preventDefault();
+            if (e.detail === 2) {
                 if (confirm('この投稿を削除しますか？')) {
                     try {
                         const response = await fetch('/delete', {
@@ -689,8 +793,8 @@
                         });
                         if (response.ok) {
                             allPosts = allPosts.filter(p => p.id != postId);
-                            renderPosts(allPosts);
-                            updatePostCount();
+                            renderPosts();
+                            updatePlaceholder();
                         } else {
                             alert('削除に失敗しました。');
                         }
@@ -709,7 +813,7 @@
             if (!currentPost) return;
 
             if (isSearchMode) {
-                renderPosts(allPosts);
+                renderPosts();
                 isSearchMode = false;
                 const allPostElements = document.querySelectorAll('.post');
                 const targetElement = Array.from(allPostElements).find(el => el.getAttribute('data-id') == postId);
@@ -753,19 +857,6 @@
                 alert('ハイライトの更新に失敗しました。');
             }
         }
-
-        let showOnlyHighlighted = false;
-        input.addEventListener('click', () => {
-            if (input.value.trim() === '') {
-                showOnlyHighlighted = !showOnlyHighlighted;
-                if (showOnlyHighlighted) {
-                    const highlightedPosts = allPosts.filter(post => post.is_highlight);
-                    renderPosts(highlightedPosts);
-                } else {
-                    renderPosts(allPosts);
-                }
-            }
-        });
 
         if (postParam) {
             input.value = postParam;
