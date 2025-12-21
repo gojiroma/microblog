@@ -193,12 +193,6 @@
             object-fit: cover;
             border-radius: 6px;
         }
-
-        .post-hashtag {
-            color: #1da1f2;
-            cursor: pointer;
-            text-decoration: underline;
-        }
     </style>
 </head>
 
@@ -353,15 +347,6 @@
             updatePlaceholder();
         }
 
-        function linkifyHashtags(text) {
-            return text.replace(/#(\w+)/g, '<span class="post-hashtag" onclick="inputHashtag(\'$1\')">#$1</span>');
-        }
-
-        function inputHashtag(hashtag) {
-            input.value = '#' + hashtag;
-            filterPosts('#' + hashtag);
-        }
-
         async function reportThumbnailError(postId) {
             try {
                 await fetch('/report_thumbnail_error', {
@@ -423,11 +408,10 @@
                         return `<a href="${url}" target="_blank" class="post-thumbnail-link">${decodedUrl}</a>`;
                     }
 
-                    return `<a href="${url}" target="_blank" class="post-thumbnail-link" data-encoded-url="${url}">
-                        <img src="${getThumbnailUrl(decodedUrl)}" alt="サムネイル" class="post-thumbnail" onerror="this.style.display='none'; this.parentNode.innerHTML='${decodedUrl}'; reportThumbnailError(${post.id});">
+                    return `<a href="${url}" target="_blank" class="post-thumbnail-link">
+                        <img src="${getThumbnailUrl(decodedUrl)}" alt="サムネイル" class="post-thumbnail" onerror="this.style.display='none'; this.parentNode.innerHTML='<a href=\\"${url}\\" target=\\"_blank\\">${decodedUrl}</a>'; reportThumbnailError(${post.id});">
                     </a>`;
                 });
-                content = linkifyHashtags(content);
                 const pinColor = post.is_highlight ? post.pin_color || getRandomPinColor() : '';
                 return `
                     <li class="post ${post.is_highlight ? 'pin' : ''}"
@@ -440,7 +424,7 @@
             }).join('');
 
             // フィルター結果が1件かつURLのみの場合、自動で開く
-            if (filteredPosts && filteredPosts.length === 1 && (filteredPosts[0].content.startsWith('http://') || filteredPosts[0].content.startsWith('https://'))) {
+            if (isSearchMode && filteredPosts && filteredPosts.length === 1 && (filteredPosts[0].content.startsWith('http://') || filteredPosts[0].content.startsWith('https://'))) {
                 window.open(filteredPosts[0].content, '_blank');
             }
 
