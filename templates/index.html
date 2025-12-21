@@ -102,142 +102,6 @@
             color: #aaa;
         }
 
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 2000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            backdrop-filter: blur(8px);
-            background-color: var(--modal-bg-light);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            .modal {
-                background-color: var(--modal-bg-dark);
-            }
-        }
-
-        .modal.show {
-            opacity: 1;
-        }
-
-        .modal-content {
-            background-color: var(--bg-color);
-            margin: 20% auto;
-            padding: 30px;
-            border-radius: 12px;
-            width: 85%;
-            max-width: 500px;
-            text-align: center;
-            color: var(--text-color);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        }
-
-        #post-count {
-            font-size: 36px;
-            font-weight: bold;
-            margin: 20px 0;
-            color: var(--text-color);
-            text-shadow:
-                1px 1px 0 rgba(0, 0, 0, 0.1),
-                2px 2px 0 rgba(0, 0, 0, 0.08),
-                3px 3px 0 rgba(0, 0, 0, 0.05);
-            transform-style: preserve-3d;
-            transform: translateZ(2px);
-        }
-
-        #qrcode {
-            margin: 15px auto;
-            max-width: 200px;
-        }
-
-        #qrcode img {
-            max-width: 100%;
-            height: auto;
-        }
-
-        .modal-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 15px;
-        }
-
-        .modal-button {
-            padding: 12px 18px;
-            border: none;
-            border-radius: 8px;
-            background-color: var(--button-bg-color);
-            color: var(--text-color);
-            cursor: pointer;
-            font-size: 16px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .modal-button:hover {
-            transform: scale(var(--hover-scale));
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        #shareUrl {
-            word-break: break-all;
-            color: var(--text-color);
-            text-decoration: none;
-            display: block;
-            margin: 15px 0;
-            padding: 8px;
-            background-color: var(--border-color);
-            border-radius: 6px;
-        }
-
-        @media (max-width: 600px) {
-            #post-input {
-                font-size: 18px;
-                padding: 14px;
-            }
-
-            .post {
-                padding: 14px;
-            }
-
-            .modal-content {
-                margin: 25% auto;
-                padding: 20px;
-            }
-        }
-
-        .post a {
-            color: var(--text-color);
-            text-decoration: underline;
-            cursor: pointer;
-        }
-
-        .post-thumbnail-link {
-            display: block;
-            max-width: 100%;
-            overflow: hidden;
-            border-radius: 6px;
-            margin: 8px 0;
-        }
-
-        .post-thumbnail {
-            width: 100%;
-            object-fit: cover;
-            border-radius: 6px;
-        }
-
-        .post-hashtag {
-            color: #1da1f2;
-            cursor: pointer;
-            text-decoration: underline;
-        }
-
         .settings-container {
             display: flex;
             flex-direction: column;
@@ -280,6 +144,53 @@
             transform: scale(var(--hover-scale));
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
+
+        #shareUrl {
+            word-break: break-all;
+            color: var(--text-color);
+            text-decoration: none;
+            display: block;
+            margin: 15px 0;
+            padding: 8px;
+            background-color: var(--border-color);
+            border-radius: 6px;
+        }
+
+        #qrcode {
+            margin: 15px auto;
+            max-width: 200px;
+        }
+
+        #qrcode img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .post a {
+            color: var(--text-color);
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .post-thumbnail-link {
+            display: block;
+            max-width: 100%;
+            overflow: hidden;
+            border-radius: 6px;
+            margin: 8px 0;
+        }
+
+        .post-thumbnail {
+            width: 100%;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+
+        .post-hashtag {
+            color: #1da1f2;
+            cursor: pointer;
+            text-decoration: underline;
+        }
     </style>
 </head>
 
@@ -288,22 +199,6 @@
         <input type="text" id="post-input" placeholder="つぶやき・検索" autocomplete="off">
     </div>
     <ul id="posts"></ul>
-    <div id="contextModal" class="modal">
-        <div class="modal-content">
-            <div id="post-count"></div>
-            <div class="modal-buttons">
-                <button id="showUrlBtn" class="modal-button">🔗 引き継ぎURLを表示</button>
-                <button id="downloadCsvBtn" class="modal-button">📥 データをダウンロード</button>
-                <button id="statsBtn" class="modal-button">📈 統計を表示</button>
-                <button id="sendTodayPostsBtn" class="modal-button">📤 新しいつぶやきをMemoriesに送信</button>
-            </div>
-            <div id="urlContent" style="display: none;">
-                <h3>引き継ぎURL</h3>
-                <a id="shareUrl" target="_blank"></a>
-                <div id="qrcode"></div>
-            </div>
-        </div>
-    </div>
 
     <script>
         const lightPastelColors = [
@@ -373,20 +268,15 @@
 
         const input = document.getElementById('post-input');
         const postsList = document.getElementById('posts');
-        const modal = document.getElementById('contextModal');
-        const urlContent = document.getElementById('urlContent');
-        const shareUrlElement = document.getElementById('shareUrl');
-        const showUrlBtn = document.getElementById('showUrlBtn');
-        const downloadCsvBtn = document.getElementById('downloadCsvBtn');
-        const statsBtn = document.getElementById('statsBtn');
-        const sendTodayPostsBtn = document.getElementById('sendTodayPostsBtn');
-        const postCountElement = document.getElementById('post-count');
+        const shareUrlElement = document.createElement('a');
+        shareUrlElement.id = 'shareUrl';
+        const qrcodeElement = document.createElement('div');
+        qrcodeElement.id = 'qrcode';
 
         let allPosts = [];
         let isPosting = false;
         let isSearchMode = false;
-        let hideThumbnailPosts = false;
-        let currentMode = '通常モード';
+        let currentMode = '独り言';
 
         function getTokenFromCookie() {
             const urlToken = urlParams.get('token');
@@ -470,31 +360,32 @@
                 postsToRender = filteredPosts;
             } else {
                 switch (currentMode) {
-                    case '通常モード':
-                        postsToRender = allPosts.filter(post => !(post.content.startsWith('http://') || post.content.startsWith('https://')));
+                    case '独り言':
+                        postsToRender = allPosts.filter(post => !(post.content.startsWith('http://') || post.content.startsWith('https://') || post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')));
+                        break;
+                    case 'すべてのsays':
+                        postsToRender = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
                         break;
                     case 'ハイライト':
-                        postsToRender = allPosts.filter(post => post.is_highlight);
-                        break;
-                    case 'フル表示':
-                        postsToRender = allPosts;
+                        postsToRender = allPosts.filter(post => post.is_highlight && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
                         break;
                     case '設定':
                         postsList.innerHTML = `
                             <div class="settings-container">
-                                <button id="showUrlBtnInSettings" class="settings-button">🔗 引き継ぎURLを表示</button>
+                                <button id="sendTodayPostsBtnInSettings" class="settings-button">📤 新しいつぶやきをMemoriesに送信</button>
                                 <button id="downloadCsvBtnInSettings" class="settings-button">📥 データをダウンロード</button>
                                 <button id="statsBtnInSettings" class="settings-button">📈 統計を表示</button>
-                                <button id="sendTodayPostsBtnInSettings" class="settings-button">📤 新しいつぶやきをMemoriesに送信</button>
+                                ${shareUrlElement.outerHTML}
+                                ${qrcodeElement.outerHTML}
                             </div>
                         `;
-                        document.getElementById('showUrlBtnInSettings').addEventListener('click', showUrlWithToken);
+                        document.getElementById('sendTodayPostsBtnInSettings').addEventListener('click', sendNewPostsToMemories);
                         document.getElementById('downloadCsvBtnInSettings').addEventListener('click', downloadCsv);
                         document.getElementById('statsBtnInSettings').addEventListener('click', goToStats);
-                        document.getElementById('sendTodayPostsBtnInSettings').addEventListener('click', sendNewPostsToMemories);
+                        showUrlWithToken();
                         return;
                     default:
-                        postsToRender = allPosts;
+                        postsToRender = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
                 }
             }
 
@@ -517,11 +408,12 @@
                     </a>`;
                 });
                 content = linkifyHashtags(content);
+                const highlightColor = post.is_highlight ? post.highlight_color || getRandomHighlightColor() : '';
                 return `
                     <li class="post ${post.is_highlight ? 'highlight' : ''}"
                         data-time="${new Date(post.created_at).toLocaleString()}"
                         data-id="${post.id}"
-                        style="${post.is_highlight ? `background-color: ${post.highlight_color || ''};` : ''}">
+                        style="${post.is_highlight ? `background-color: ${highlightColor};` : ''}">
                         ${content}
                     </li>
                 `;
@@ -536,31 +428,34 @@
             }
         }
 
+        function getRandomHighlightColor() {
+            const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const pastelColors = isDarkMode ? darkPastelColors : lightPastelColors;
+            const shuffledColors = shuffleArray([...pastelColors]);
+            return shuffledColors[0];
+        }
+
         function updatePlaceholder() {
             let count = 0;
             let placeholderText = '';
             switch (currentMode) {
-                case '通常モード':
-                    count = allPosts.filter(post => !(post.content.startsWith('http://') || post.content.startsWith('https://'))).length;
+                case '独り言':
+                    count = allPosts.filter(post => !(post.content.startsWith('http://') || post.content.startsWith('https://') || post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'))).length;
                     placeholderText = `${count}件の独り言`;
                     break;
-                case 'ハイライト':
-                    count = allPosts.filter(post => post.is_highlight).length;
-                    placeholderText = `${count}件のハイライト`;
-                    break;
-                case 'フル表示':
-                    count = allPosts.length;
+                case 'すべてのsays':
+                    count = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')).length;
                     placeholderText = `${count}件のsays`;
+                    break;
+                case 'ハイライト':
+                    count = allPosts.filter(post => post.is_highlight && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')).length;
+                    placeholderText = `${count}件のハイライト`;
                     break;
                 case '設定':
                     placeholderText = '設定';
                     break;
             }
             input.placeholder = placeholderText;
-        }
-
-        function updatePostCount() {
-            postCountElement.textContent = `${allPosts.length} Posts`;
         }
 
         function filterPosts(query) {
@@ -655,9 +550,8 @@
             const url = `${window.location.origin}${postOnlyMode ? '?postonly=yes&' : '?'}token=${token}`;
             shareUrlElement.href = url;
             shareUrlElement.textContent = url;
-            document.getElementById('qrcode').innerHTML =
+            qrcodeElement.innerHTML =
                 `<img src="https://idy.vercel.app/q/${encodeURIComponent(url)}" alt="QRコード">`;
-            urlContent.style.display = 'block';
         }
 
         function downloadCsv() {
@@ -666,7 +560,7 @@
                 return;
             }
             const csvHeader = ['タイムスタンプ', 'メモ内容'];
-            const csvRows = allPosts.map(post =>
+            const csvRows = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')).map(post =>
                 `"${new Date(post.created_at).toLocaleString()}",${post.content.replace(/"/g, '""')}`
             );
             const csvContent = [csvHeader.join(','), ...csvRows].join('\n');
@@ -688,9 +582,9 @@
             const lastMemoryMarkerIndex = allPosts.findIndex(post => post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
             let postsToSend;
             if (lastMemoryMarkerIndex === -1) {
-                postsToSend = allPosts.filter(post => !(post.content.startsWith('http://') || post.content.startsWith('https://')));
+                postsToSend = allPosts.filter(post => !(post.content.startsWith('http://') || post.content.startsWith('https://') || post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')));
             } else {
-                postsToSend = allPosts.slice(0, lastMemoryMarkerIndex).filter(post => !(post.content.startsWith('http://') || post.content.startsWith('https://')));
+                postsToSend = allPosts.slice(0, lastMemoryMarkerIndex).filter(post => !(post.content.startsWith('http://') || post.content.startsWith('https://') || post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')));
             }
 
             if (postsToSend.length === 0) return;
@@ -711,44 +605,14 @@
             }
         }
 
-        function applyHighlightColor(postElement, isHighlighted) {
-            if (isHighlighted) {
-                const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                const pastelColors = isDarkMode ? darkPastelColors : lightPastelColors;
-                const shuffledColors = shuffleArray([...pastelColors]);
-                const randomColor = shuffledColors[0];
-                postElement.style.backgroundColor = randomColor;
-                postElement.classList.add('highlight');
-            } else {
-                postElement.style.backgroundColor = '';
-                postElement.classList.remove('highlight');
-            }
-        }
-
         function cycleMode() {
-            const modes = ['通常モード', 'ハイライト', 'フル表示', '設定'];
+            const modes = ['独り言', 'すべてのsays', 'ハイライト', '設定'];
             const currentIndex = modes.indexOf(currentMode);
             currentMode = modes[(currentIndex + 1) % modes.length];
             input.value = '';
             renderPosts();
             updatePlaceholder();
         }
-
-        document.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            urlContent.style.display = 'none';
-            modal.classList.add('show');
-            modal.style.display = 'block';
-        });
-
-        window.onclick = (event) => {
-            if (event.target === modal) modal.style.display = 'none';
-        };
-
-        showUrlBtn.addEventListener('click', showUrlWithToken);
-        downloadCsvBtn.addEventListener('click', downloadCsv);
-        statsBtn.addEventListener('click', goToStats);
-        sendTodayPostsBtn.addEventListener('click', sendNewPostsToMemories);
 
         input.addEventListener('input', (e) => filterPosts(e.target.value));
         input.addEventListener('keydown', async (e) => {
@@ -851,7 +715,8 @@
                 const utterance = new SpeechSynthesisUtterance(currentPost.content);
                 window.speechSynthesis.speak(utterance);
             }
-            applyHighlightColor(postElement, willBeHighlighted);
+            const highlightColor = getRandomHighlightColor();
+            postElement.style.backgroundColor = willBeHighlighted ? highlightColor : '';
             try {
                 await navigator.clipboard.writeText(currentPost.content);
             } catch (err) {
@@ -861,17 +726,18 @@
                 const response = await fetch('/highlight', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: postId, is_highlight: willBeHighlighted }),
+                    body: JSON.stringify({ id: postId, is_highlight: willBeHighlighted, highlight_color: highlightColor }),
                 });
                 if (response.ok) {
                     currentPost.is_highlight = willBeHighlighted;
+                    currentPost.highlight_color = highlightColor;
                 } else {
-                    applyHighlightColor(postElement, isHighlighted);
+                    postElement.style.backgroundColor = isHighlighted ? highlightColor : '';
                     alert('ハイライトの更新に失敗しました。');
                 }
             } catch (error) {
                 console.error('Error updating highlight:', error);
-                applyHighlightColor(postElement, isHighlighted);
+                postElement.style.backgroundColor = isHighlighted ? highlightColor : '';
                 alert('ハイライトの更新に失敗しました。');
             }
         }
