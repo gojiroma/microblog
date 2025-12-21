@@ -550,8 +550,7 @@
             const url = `${window.location.origin}${postOnlyMode ? '?postonly=yes&' : '?'}token=${token}`;
             shareUrlElement.href = url;
             shareUrlElement.textContent = url;
-            qrcodeElement.innerHTML =
-                `<img src="https://idy.vercel.app/q/${encodeURIComponent(url)}" alt="QRコード">`;
+            qrcodeElement.innerHTML = `<img src="https://idy.vercel.app/q/${encodeURIComponent(url)}" alt="QRコード">`;
         }
 
         function downloadCsv() {
