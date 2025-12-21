@@ -419,7 +419,7 @@
                 `;
             }).join('');
 
-            if (isSearchMode && filteredPosts) {
+            if (isSearchMode && filteredPosts && filteredPosts.length > 0) {
                 const copyButton = document.createElement('button');
                 copyButton.className = 'copy-filtered-button';
                 copyButton.textContent = 'フィルターした投稿をコピー';
