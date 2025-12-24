@@ -708,6 +708,31 @@
 
         document.addEventListener('keydown', handleDateNavigation);
 
+        postsList.addEventListener('contextmenu', async (e) => {
+            e.preventDefault();
+            const postElement = e.target.closest('.post');
+            if (postElement) {
+                const postId = postElement.getAttribute('data-id');
+                try {
+                    const response = await fetch('/delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: postId }),
+                    });
+                    if (response.ok) {
+                        allPosts = allPosts.filter(p => p.id != postId);
+                        renderPosts();
+                        updatePlaceholder();
+                    } else {
+                        alert('削除に失敗しました。');
+                    }
+                } catch (err) {
+                    console.error('削除エラー:', err);
+                    alert('削除エラーが発生しました。');
+                }
+            }
+        });
+
         postsList.addEventListener('mousedown', async (e) => {
             if (e.button === 1) e.preventDefault();
             await handlePostClick(e);
