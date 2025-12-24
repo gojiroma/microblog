@@ -193,14 +193,6 @@
             object-fit: cover;
             border-radius: 6px;
         }
-
-        .date-header {
-            margin-top: 20px;
-            margin-bottom: 10px;
-            font-size: 1.2em;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 5px;
-        }
     </style>
 </head>
 
@@ -300,7 +292,6 @@
         let isPosting = false;
         let isSearchMode = false;
         let currentMode = '独り言';
-        let currentDateFilter = null;
 
         function getTokenFromCookie() {
             const urlToken = urlParams.get('token');
@@ -369,60 +360,41 @@
             }
         }
 
-        function formatDateHeader(date) {
-            const daysOfWeek = ['日', '月', '火', '水', '木', '金', '土'];
-            const dayOfWeek = daysOfWeek[date.getDay()];
-            return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${dayOfWeek}曜日`;
-        }
-
         function renderPosts(filteredPosts = null) {
             let postsToRender = [];
             if (filteredPosts) {
                 postsToRender = filteredPosts;
             } else {
-                if (currentDateFilter) {
-                    const filteredByDate = allPosts.filter(post => {
-                        const postDate = new Date(post.created_at);
-                        return postDate.toDateString() === currentDateFilter.toDateString();
-                    });
-                    postsToRender = filteredByDate;
-                    const dateHeader = document.createElement('h1');
-                    dateHeader.className = 'date-header';
-                    dateHeader.textContent = formatDateHeader(currentDateFilter);
-                    postsList.innerHTML = '';
-                    postsList.appendChild(dateHeader);
-                } else {
-                    switch (currentMode) {
-                        case '独り言':
-                            const pinnedPosts = allPosts.filter(post => post.is_highlight && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
-                            const normalPosts = allPosts.filter(post => !post.is_highlight && !(post.content.startsWith('http://') || post.content.startsWith('https://') || post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')));
-                            postsToRender = [...pinnedPosts, ...normalPosts];
-                            break;
-                        case 'すべてのsays':
-                            postsToRender = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
-                            break;
-                        case '設定':
-                            postsList.innerHTML = `
-                                <div class="settings-container">
-                                    <button id="sendTodayPostsBtnInSettings" class="settings-button">📤 新しいつぶやきをMemoriesに送信</button>
-                                    <button id="downloadCsvBtnInSettings" class="settings-button">📥 データをダウンロード</button>
-                                    <button id="statsBtnInSettings" class="settings-button">📈 統計を表示</button>
-                                    ${shareUrlElement.outerHTML}
-                                    ${qrcodeElement.outerHTML}
-                                </div>
-                            `;
-                            document.getElementById('sendTodayPostsBtnInSettings').addEventListener('click', sendNewPostsToMemories);
-                            document.getElementById('downloadCsvBtnInSettings').addEventListener('click', downloadCsv);
-                            document.getElementById('statsBtnInSettings').addEventListener('click', goToStats);
-                            showUrlWithToken();
-                            return;
-                        default:
-                            postsToRender = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
-                    }
+                switch (currentMode) {
+                    case '独り言':
+                        const pinnedPosts = allPosts.filter(post => post.is_highlight && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
+                        const normalPosts = allPosts.filter(post => !post.is_highlight && !(post.content.startsWith('http://') || post.content.startsWith('https://') || post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')));
+                        postsToRender = [...pinnedPosts, ...normalPosts];
+                        break;
+                    case 'すべてのsays':
+                        postsToRender = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
+                        break;
+                    case '設定':
+                        postsList.innerHTML = `
+                            <div class="settings-container">
+                                <button id="sendTodayPostsBtnInSettings" class="settings-button">📤 新しいつぶやきをMemoriesに送信</button>
+                                <button id="downloadCsvBtnInSettings" class="settings-button">📥 データをダウンロード</button>
+                                <button id="statsBtnInSettings" class="settings-button">📈 統計を表示</button>
+                                ${shareUrlElement.outerHTML}
+                                ${qrcodeElement.outerHTML}
+                            </div>
+                        `;
+                        document.getElementById('sendTodayPostsBtnInSettings').addEventListener('click', sendNewPostsToMemories);
+                        document.getElementById('downloadCsvBtnInSettings').addEventListener('click', downloadCsv);
+                        document.getElementById('statsBtnInSettings').addEventListener('click', goToStats);
+                        showUrlWithToken();
+                        return;
+                    default:
+                        postsToRender = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
                 }
             }
 
-            postsList.innerHTML += postsToRender.map(post => {
+            postsList.innerHTML = postsToRender.map(post => {
                 let content = post.content;
                 content = content.replace(/((https?:\/\/[^\s]+))/g, (match, url) => {
                     let decodedUrl;
@@ -452,9 +424,12 @@
                     </li>
                 `;
             }).join('');
+
+            // フィルター結果が1件かつURLのみの場合、自動で開く
             if (isSearchMode && filteredPosts && filteredPosts.length === 1 && (filteredPosts[0].content.startsWith('http://') || filteredPosts[0].content.startsWith('https://'))) {
                 window.open(filteredPosts[0].content, '_blank');
             }
+
             if (isSearchMode && filteredPosts && filteredPosts.length > 0) {
                 const copyButton = document.createElement('button');
                 copyButton.className = 'copy-filtered-button';
@@ -552,6 +527,11 @@
                 }
             });
 
+            // フィルター結果が1件かつURLのみの場合、自動で開く
+            if (filtered.length === 1 && (filtered[0].content.startsWith('http://') || filtered[0].content.startsWith('https://'))) {
+                window.open(filtered[0].content, '_blank');
+            }
+
             renderPosts(filtered);
         }
 
@@ -637,13 +617,6 @@
         }
 
         function cycleMode() {
-            if (currentDateFilter) {
-                currentDateFilter = null;
-                currentMode = '独り言';
-                renderPosts();
-                updatePlaceholder();
-                return;
-            }
             const modes = ['独り言', 'すべてのsays', '設定'];
             const currentIndex = modes.indexOf(currentMode);
             currentMode = modes[(currentIndex + 1) % modes.length];
@@ -652,36 +625,7 @@
             updatePlaceholder();
         }
 
-        function handleDateNavigation(e) {
-            if (document.activeElement === input) return;
-
-            if (!currentDateFilter) {
-                currentDateFilter = new Date();
-            }
-
-            if (e.key === 'ArrowRight') {
-                currentDateFilter.setDate(currentDateFilter.getDate() - 1);
-            } else if (e.key === 'ArrowLeft') {
-                currentDateFilter.setDate(currentDateFilter.getDate() + 1);
-            }
-
-            const originalMode = currentMode;
-            currentMode = 'すべてのsays';
-            renderPosts();
-            currentMode = originalMode;
-            updatePlaceholder();
-        }
-
-        input.addEventListener('input', (e) => {
-            if (currentDateFilter) {
-                currentDateFilter = null;
-                currentMode = '独り言';
-                renderPosts();
-                updatePlaceholder();
-            }
-            filterPosts(e.target.value);
-        });
-
+        input.addEventListener('input', (e) => filterPosts(e.target.value));
         input.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter' && input.value.trim() && !isPosting) {
                 const content = input.value.trim();
@@ -720,42 +664,9 @@
         });
 
         input.addEventListener('click', () => {
-            if (currentDateFilter) {
-                currentDateFilter = null;
-                currentMode = '独り言';
-                renderPosts();
-                updatePlaceholder();
-            } else {
-                cycleMode();
-            }
+            cycleMode();
         });
 
-        document.addEventListener('keydown', handleDateNavigation);
-
-        postsList.addEventListener('contextmenu', async (e) => {
-            e.preventDefault();
-            const postElement = e.target.closest('.post');
-            if (postElement) {
-                const postId = postElement.getAttribute('data-id');
-                try {
-                    const response = await fetch('/delete', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: postId }),
-                    });
-                    if (response.ok) {
-                        allPosts = allPosts.filter(p => p.id != postId);
-                        renderPosts();
-                        updatePlaceholder();
-                    } else {
-                        alert('削除に失敗しました。');
-                    }
-                } catch (err) {
-                    console.error('削除エラー:', err);
-                    alert('削除エラーが発生しました。');
-                }
-            }
-        });
 
         postsList.addEventListener('mousedown', async (e) => {
             if (e.button === 1) e.preventDefault();
