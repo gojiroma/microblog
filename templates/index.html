@@ -193,6 +193,14 @@
             object-fit: cover;
             border-radius: 6px;
         }
+
+        .date-header {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
+        }
     </style>
 </head>
 
@@ -292,6 +300,7 @@
         let isPosting = false;
         let isSearchMode = false;
         let currentMode = '独り言';
+        let currentDateFilter = null;
 
         function getTokenFromCookie() {
             const urlToken = urlParams.get('token');
@@ -360,6 +369,12 @@
             }
         }
 
+        function formatDateHeader(date) {
+            const daysOfWeek = ['日', '月', '火', '水', '木', '金', '土'];
+            const dayOfWeek = daysOfWeek[date.getDay()];
+            return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${dayOfWeek}曜日`;
+        }
+
         function renderPosts(filteredPosts = null) {
             let postsToRender = [];
             if (filteredPosts) {
@@ -394,7 +409,22 @@
                 }
             }
 
-            postsList.innerHTML = postsToRender.map(post => {
+            if (currentDateFilter) {
+                const filteredByDate = postsToRender.filter(post => {
+                    const postDate = new Date(post.created_at);
+                    return postDate.toDateString() === currentDateFilter.toDateString();
+                });
+                postsToRender = filteredByDate;
+                const dateHeader = document.createElement('h1');
+                dateHeader.className = 'date-header';
+                dateHeader.textContent = formatDateHeader(currentDateFilter);
+                postsList.innerHTML = '';
+                postsList.appendChild(dateHeader);
+            } else {
+                postsList.innerHTML = '';
+            }
+
+            postsList.innerHTML += postsToRender.map(post => {
                 let content = post.content;
                 content = content.replace(/((https?:\/\/[^\s]+))/g, (match, url) => {
                     let decodedUrl;
@@ -424,12 +454,10 @@
                     </li>
                 `;
             }).join('');
-
             // フィルター結果が1件かつURLのみの場合、自動で開く
             if (isSearchMode && filteredPosts && filteredPosts.length === 1 && (filteredPosts[0].content.startsWith('http://') || filteredPosts[0].content.startsWith('https://'))) {
                 window.open(filteredPosts[0].content, '_blank');
             }
-
             if (isSearchMode && filteredPosts && filteredPosts.length > 0) {
                 const copyButton = document.createElement('button');
                 copyButton.className = 'copy-filtered-button';
@@ -527,11 +555,6 @@
                 }
             });
 
-            // フィルター結果が1件かつURLのみの場合、自動で開く
-            if (filtered.length === 1 && (filtered[0].content.startsWith('http://') || filtered[0].content.startsWith('https://'))) {
-                window.open(filtered[0].content, '_blank');
-            }
-
             renderPosts(filtered);
         }
 
@@ -625,6 +648,22 @@
             updatePlaceholder();
         }
 
+        function handleDateNavigation(e) {
+            if (document.activeElement === input) return;
+
+            if (!currentDateFilter) {
+                currentDateFilter = new Date();
+            }
+
+            if (e.key === 'ArrowRight') {
+                currentDateFilter.setDate(currentDateFilter.getDate() - 1);
+            } else if (e.key === 'ArrowLeft') {
+                currentDateFilter.setDate(currentDateFilter.getDate() + 1);
+            }
+
+            renderPosts();
+        }
+
         input.addEventListener('input', (e) => filterPosts(e.target.value));
         input.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter' && input.value.trim() && !isPosting) {
@@ -667,6 +706,7 @@
             cycleMode();
         });
 
+        document.addEventListener('keydown', handleDateNavigation);
 
         postsList.addEventListener('mousedown', async (e) => {
             if (e.button === 1) e.preventDefault();
