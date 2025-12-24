@@ -380,48 +380,46 @@
             if (filteredPosts) {
                 postsToRender = filteredPosts;
             } else {
-                switch (currentMode) {
-                    case '独り言':
-                        const pinnedPosts = allPosts.filter(post => post.is_highlight && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
-                        const normalPosts = allPosts.filter(post => !post.is_highlight && !(post.content.startsWith('http://') || post.content.startsWith('https://') || post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')));
-                        postsToRender = [...pinnedPosts, ...normalPosts];
-                        break;
-                    case 'すべてのsays':
-                        postsToRender = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
-                        break;
-                    case '設定':
-                        postsList.innerHTML = `
-                            <div class="settings-container">
-                                <button id="sendTodayPostsBtnInSettings" class="settings-button">📤 新しいつぶやきをMemoriesに送信</button>
-                                <button id="downloadCsvBtnInSettings" class="settings-button">📥 データをダウンロード</button>
-                                <button id="statsBtnInSettings" class="settings-button">📈 統計を表示</button>
-                                ${shareUrlElement.outerHTML}
-                                ${qrcodeElement.outerHTML}
-                            </div>
-                        `;
-                        document.getElementById('sendTodayPostsBtnInSettings').addEventListener('click', sendNewPostsToMemories);
-                        document.getElementById('downloadCsvBtnInSettings').addEventListener('click', downloadCsv);
-                        document.getElementById('statsBtnInSettings').addEventListener('click', goToStats);
-                        showUrlWithToken();
-                        return;
-                    default:
-                        postsToRender = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
+                if (currentDateFilter) {
+                    const filteredByDate = allPosts.filter(post => {
+                        const postDate = new Date(post.created_at);
+                        return postDate.toDateString() === currentDateFilter.toDateString();
+                    });
+                    postsToRender = filteredByDate;
+                    const dateHeader = document.createElement('h1');
+                    dateHeader.className = 'date-header';
+                    dateHeader.textContent = formatDateHeader(currentDateFilter);
+                    postsList.innerHTML = '';
+                    postsList.appendChild(dateHeader);
+                } else {
+                    switch (currentMode) {
+                        case '独り言':
+                            const pinnedPosts = allPosts.filter(post => post.is_highlight && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
+                            const normalPosts = allPosts.filter(post => !post.is_highlight && !(post.content.startsWith('http://') || post.content.startsWith('https://') || post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')));
+                            postsToRender = [...pinnedPosts, ...normalPosts];
+                            break;
+                        case 'すべてのsays':
+                            postsToRender = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
+                            break;
+                        case '設定':
+                            postsList.innerHTML = `
+                                <div class="settings-container">
+                                    <button id="sendTodayPostsBtnInSettings" class="settings-button">📤 新しいつぶやきをMemoriesに送信</button>
+                                    <button id="downloadCsvBtnInSettings" class="settings-button">📥 データをダウンロード</button>
+                                    <button id="statsBtnInSettings" class="settings-button">📈 統計を表示</button>
+                                    ${shareUrlElement.outerHTML}
+                                    ${qrcodeElement.outerHTML}
+                                </div>
+                            `;
+                            document.getElementById('sendTodayPostsBtnInSettings').addEventListener('click', sendNewPostsToMemories);
+                            document.getElementById('downloadCsvBtnInSettings').addEventListener('click', downloadCsv);
+                            document.getElementById('statsBtnInSettings').addEventListener('click', goToStats);
+                            showUrlWithToken();
+                            return;
+                        default:
+                            postsToRender = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
+                    }
                 }
-            }
-
-            if (currentDateFilter) {
-                const filteredByDate = postsToRender.filter(post => {
-                    const postDate = new Date(post.created_at);
-                    return postDate.toDateString() === currentDateFilter.toDateString();
-                });
-                postsToRender = filteredByDate;
-                const dateHeader = document.createElement('h1');
-                dateHeader.className = 'date-header';
-                dateHeader.textContent = formatDateHeader(currentDateFilter);
-                postsList.innerHTML = '';
-                postsList.appendChild(dateHeader);
-            } else {
-                postsList.innerHTML = '';
             }
 
             postsList.innerHTML += postsToRender.map(post => {
@@ -454,7 +452,6 @@
                     </li>
                 `;
             }).join('');
-            // フィルター結果が1件かつURLのみの場合、自動で開く
             if (isSearchMode && filteredPosts && filteredPosts.length === 1 && (filteredPosts[0].content.startsWith('http://') || filteredPosts[0].content.startsWith('https://'))) {
                 window.open(filteredPosts[0].content, '_blank');
             }
@@ -661,7 +658,11 @@
                 currentDateFilter.setDate(currentDateFilter.getDate() + 1);
             }
 
+            const originalMode = currentMode;
+            currentMode = 'すべてのsays';
             renderPosts();
+            currentMode = originalMode;
+            updatePlaceholder();
         }
 
         input.addEventListener('input', (e) => filterPosts(e.target.value));
