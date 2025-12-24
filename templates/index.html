@@ -637,6 +637,13 @@
         }
 
         function cycleMode() {
+            if (currentDateFilter) {
+                currentDateFilter = null;
+                currentMode = '独り言';
+                renderPosts();
+                updatePlaceholder();
+                return;
+            }
             const modes = ['独り言', 'すべてのsays', '設定'];
             const currentIndex = modes.indexOf(currentMode);
             currentMode = modes[(currentIndex + 1) % modes.length];
@@ -665,7 +672,16 @@
             updatePlaceholder();
         }
 
-        input.addEventListener('input', (e) => filterPosts(e.target.value));
+        input.addEventListener('input', (e) => {
+            if (currentDateFilter) {
+                currentDateFilter = null;
+                currentMode = '独り言';
+                renderPosts();
+                updatePlaceholder();
+            }
+            filterPosts(e.target.value);
+        });
+
         input.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter' && input.value.trim() && !isPosting) {
                 const content = input.value.trim();
@@ -704,7 +720,14 @@
         });
 
         input.addEventListener('click', () => {
-            cycleMode();
+            if (currentDateFilter) {
+                currentDateFilter = null;
+                currentMode = '独り言';
+                renderPosts();
+                updatePlaceholder();
+            } else {
+                cycleMode();
+            }
         });
 
         document.addEventListener('keydown', handleDateNavigation);
