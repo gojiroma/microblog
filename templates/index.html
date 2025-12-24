@@ -97,8 +97,9 @@
             transform: scale(1.01);
         }
 
-        .post.pin {
+        .post.highlight {
             font-weight: bold;
+            background-color: var(--highlight-color);
         }
 
         .post:hover::after {
@@ -292,6 +293,7 @@
         let isPosting = false;
         let isSearchMode = false;
         let currentMode = '独り言';
+        let currentDateFilter = null;
 
         function getTokenFromCookie() {
             const urlToken = urlParams.get('token');
@@ -367,9 +369,9 @@
             } else {
                 switch (currentMode) {
                     case '独り言':
-                        const pinnedPosts = allPosts.filter(post => post.is_highlight && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
+                        const highlightedPosts = allPosts.filter(post => post.is_highlight && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
                         const normalPosts = allPosts.filter(post => !post.is_highlight && !(post.content.startsWith('http://') || post.content.startsWith('https://') || post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')));
-                        postsToRender = [...pinnedPosts, ...normalPosts];
+                        postsToRender = [...highlightedPosts, ...normalPosts];
                         break;
                     case 'すべてのsays':
                         postsToRender = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
@@ -414,18 +416,17 @@
                         <img src="${getThumbnailUrl(decodedUrl)}" alt="サムネイル" class="post-thumbnail" onerror="this.style.display='none'; this.parentNode.innerHTML='<a href=&quot;${escapedUrl}&quot; target=&quot;_blank&quot;>${escapedDecodedUrl}</a>'; reportThumbnailError(${post.id});">
                     </a>`;
                 });
-                const pinColor = post.is_highlight ? post.pin_color || getRandomPinColor() : '';
+                const highlightColor = post.is_highlight ? post.highlight_color || getRandomHighlightColor() : '';
                 return `
-                    <li class="post ${post.is_highlight ? 'pin' : ''}"
+                    <li class="post ${post.is_highlight ? 'highlight' : ''}"
                         data-time="${new Date(post.created_at).toLocaleString()}"
                         data-id="${post.id}"
-                        style="${post.is_highlight ? `background-color: ${pinColor};` : ''}">
+                        style="${post.is_highlight ? `background-color: ${highlightColor};` : ''}">
                         ${content}
                     </li>
                 `;
             }).join('');
 
-            // フィルター結果が1件かつURLのみの場合、自動で開く
             if (isSearchMode && filteredPosts && filteredPosts.length === 1 && (filteredPosts[0].content.startsWith('http://') || filteredPosts[0].content.startsWith('https://'))) {
                 window.open(filteredPosts[0].content, '_blank');
             }
@@ -439,7 +440,7 @@
             }
         }
 
-        function getRandomPinColor() {
+        function getRandomHighlightColor() {
             const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
             const pastelColors = isDarkMode ? darkPastelColors : lightPastelColors;
             const shuffledColors = shuffleArray([...pastelColors]);
@@ -461,6 +462,11 @@
                 case '設定':
                     placeholderText = '設定';
                     break;
+            }
+            if (currentDateFilter) {
+                const date = new Date(currentDateFilter);
+                const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
+                placeholderText = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 (${dayOfWeek})`;
             }
             input.placeholder = placeholderText;
         }
@@ -527,12 +533,23 @@
                 }
             });
 
-            // フィルター結果が1件かつURLのみの場合、自動で開く
-            if (filtered.length === 1 && (filtered[0].content.startsWith('http://') || filtered[0].content.startsWith('https://'))) {
-                window.open(filtered[0].content, '_blank');
-            }
+            renderPosts(filtered);
+        }
+
+        function filterPostsByDate(date) {
+            currentDateFilter = date;
+            const startOfDay = new Date(date);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(date);
+            endOfDay.setHours(23, 59, 59, 999);
+
+            const filtered = allPosts.filter(post => {
+                const postDate = new Date(post.created_at);
+                return postDate >= startOfDay && postDate <= endOfDay && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★');
+            });
 
             renderPosts(filtered);
+            updatePlaceholder();
         }
 
         function copyFilteredPosts(filteredPosts) {
@@ -667,6 +684,26 @@
             cycleMode();
         });
 
+        document.addEventListener('keydown', (e) => {
+            if (document.activeElement !== input) {
+                if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    const today = new Date();
+                    let newDate;
+                    if (e.key === 'ArrowLeft') {
+                        newDate = new Date(today);
+                        newDate.setDate(newDate.getDate() - 1);
+                    } else if (e.key === 'ArrowRight') {
+                        newDate = new Date(today);
+                        newDate.setDate(newDate.getDate() + 1);
+                    } else {
+                        newDate = today;
+                    }
+                    filterPostsByDate(newDate);
+                    currentMode = '日付フィルタ';
+                }
+            }
+        });
 
         postsList.addEventListener('mousedown', async (e) => {
             if (e.button === 1) e.preventDefault();
@@ -715,22 +752,22 @@
                 const targetElement = Array.from(allPostElements).find(el => el.getAttribute('data-id') == postId);
                 if (targetElement) {
                     targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    targetElement.classList.add('pin');
+                    targetElement.classList.add('highlight');
                     setTimeout(() => {
-                        targetElement.classList.remove('pin');
+                        targetElement.classList.remove('highlight');
                     }, 2000);
                 }
                 return;
             }
 
-            const isPinned = currentPost.is_highlight;
-            const willBePinned = !isPinned;
-            if (willBePinned) {
+            const isHighlighted = currentPost.is_highlight;
+            const willBeHighlighted = !isHighlighted;
+            if (willBeHighlighted) {
                 const utterance = new SpeechSynthesisUtterance(currentPost.content);
                 window.speechSynthesis.speak(utterance);
             }
-            const pinColor = getRandomPinColor();
-            postElement.style.backgroundColor = willBePinned ? pinColor : '';
+            const highlightColor = getRandomHighlightColor();
+            postElement.style.backgroundColor = willBeHighlighted ? highlightColor : '';
             try {
                 await navigator.clipboard.writeText(currentPost.content);
             } catch (err) {
@@ -740,25 +777,25 @@
                 const response = await fetch('/highlight', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: postId, is_highlight: willBePinned, pin_color: pinColor }),
+                    body: JSON.stringify({ id: postId, is_highlight: willBeHighlighted, highlight_color: highlightColor }),
                 });
                 if (response.ok) {
-                    currentPost.is_highlight = willBePinned;
-                    currentPost.pin_color = pinColor;
-                    if (!willBePinned) {
+                    currentPost.is_highlight = willBeHighlighted;
+                    currentPost.highlight_color = highlightColor;
+                    if (!willBeHighlighted) {
                         postElement.classList.add('fade-out');
                         setTimeout(() => {
                             renderPosts();
                         }, 500);
                     }
                 } else {
-                    postElement.style.backgroundColor = isPinned ? pinColor : '';
-                    alert('ピンの更新に失敗しました。');
+                    postElement.style.backgroundColor = isHighlighted ? highlightColor : '';
+                    alert('ハイライトの更新に失敗しました。');
                 }
             } catch (error) {
-                console.error('Error updating pin:', error);
-                postElement.style.backgroundColor = isPinned ? pinColor : '';
-                alert('ピンの更新に失敗しました。');
+                console.error('Error updating highlight:', error);
+                postElement.style.backgroundColor = isHighlighted ? highlightColor : '';
+                alert('ハイライトの更新に失敗しました。');
             }
         }
 
