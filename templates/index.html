@@ -292,7 +292,7 @@
         let isPosting = false;
         let isSearchMode = false;
         let currentMode = '独り言';
-        let currentDateFilter = null;
+        let currentDateFilter = new Date();
 
         function getTokenFromCookie() {
             const urlToken = urlParams.get('token');
@@ -687,18 +687,14 @@
             if (document.activeElement !== input) {
                 if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
                     e.preventDefault();
-                    const today = new Date();
-                    let newDate;
+                    const newDate = new Date(currentDateFilter);
                     if (e.key === 'ArrowLeft') {
-                        newDate = new Date(today);
                         newDate.setDate(newDate.getDate() - 1);
                     } else if (e.key === 'ArrowRight') {
-                        newDate = new Date(today);
                         newDate.setDate(newDate.getDate() + 1);
-                    } else {
-                        newDate = today;
                     }
-                    filterPostsByDate(newDate);
+                    currentDateFilter = newDate;
+                    filterPostsByDate(currentDateFilter);
                     currentMode = '日付フィルタ';
                 }
             }
