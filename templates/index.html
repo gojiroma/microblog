@@ -427,7 +427,7 @@
                 const copyButton = document.createElement('button');
                 copyButton.className = 'copy-filtered-button';
                 copyButton.textContent = 'フィルターした投稿をコピー';
-                copyButton.addEventListener('click', () => copyFilteredPosts(filteredPosts));
+                copyButton.addEventListener('click', () => copyFilteredPosts(filteredPosts, copyButton));
                 postsList.appendChild(copyButton);
             }
         }
@@ -533,7 +533,7 @@
             updatePlaceholder();
         }
 
-        function copyFilteredPosts(filteredPosts) {
+        function copyFilteredPosts(filteredPosts, button) {
             const formattedPosts = filteredPosts.map(post => {
                 const date = new Date(post.created_at);
                 const formattedDate = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
@@ -541,7 +541,13 @@
             }).join('\n');
 
             navigator.clipboard.writeText(formattedPosts)
-                .then(() => alert('フィルターした投稿をクリップボードにコピーしました。'))
+                .then(() => {
+                    const originalText = button.textContent;
+                    button.textContent = 'コピーしました';
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                    }, 3000);
+                })
                 .catch(err => console.error('コピーに失敗しました:', err));
         }
 
