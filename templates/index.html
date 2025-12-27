@@ -198,7 +198,7 @@
 
 <body>
     <div id="input-area">
-        <input type="text" id="post-input" placeholder="つぶやき・検索" autocomplete="off">
+        <input type="text" id="post-input" placeholder="" autocomplete="off">
     </div>
     <ul id="posts"></ul>
 
@@ -291,8 +291,8 @@
         let allPosts = [];
         let isPosting = false;
         let isSearchMode = false;
-        let currentMode = '独り言';
-        let currentDateFilter = new Date();
+        let currentMode = 'すべてのsays';
+        let currentDateFilter = null;
 
         function getTokenFromCookie() {
             const urlToken = urlParams.get('token');
@@ -367,11 +367,6 @@
                 postsToRender = filteredPosts;
             } else {
                 switch (currentMode) {
-                    case '独り言':
-                        const highlightedPosts = allPosts.filter(post => post.is_highlight && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
-                        const normalPosts = allPosts.filter(post => !post.is_highlight && !(post.content.startsWith('http://') || post.content.startsWith('https://') || post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')));
-                        postsToRender = [...highlightedPosts, ...normalPosts];
-                        break;
                     case 'すべてのsays':
                         postsToRender = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
                         break;
@@ -390,8 +385,6 @@
                         document.getElementById('statsBtnInSettings').addEventListener('click', goToStats);
                         showUrlWithToken();
                         return;
-                    default:
-                        postsToRender = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
                 }
             }
 
@@ -430,7 +423,7 @@
                 window.open(filteredPosts[0].content, '_blank');
             }
 
-            if (isSearchMode && filteredPosts && filteredPosts.length > 0) {
+            if ((isSearchMode || currentDateFilter) && filteredPosts && filteredPosts.length > 0) {
                 const copyButton = document.createElement('button');
                 copyButton.className = 'copy-filtered-button';
                 copyButton.textContent = 'フィルターした投稿をコピー';
@@ -447,27 +440,16 @@
         }
 
         function updatePlaceholder() {
-            let count = 0;
-            let placeholderText = '';
-            switch (currentMode) {
-                case '独り言':
-                    count = allPosts.filter(post => !(post.content.startsWith('http://') || post.content.startsWith('https://') || post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'))).length;
-                    placeholderText = `${count}件の独り言`;
-                    break;
-                case 'すべてのsays':
-                    count = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')).length;
-                    placeholderText = `${count}件のsays`;
-                    break;
-                case '設定':
-                    placeholderText = '設定';
-                    break;
-            }
             if (currentDateFilter) {
                 const date = new Date(currentDateFilter);
                 const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
-                placeholderText = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 (${dayOfWeek})`;
+                input.placeholder = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 (${dayOfWeek})`;
+            } else if (currentMode === 'すべてのsays') {
+                const count = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')).length;
+                input.placeholder = `${count} says`;
+            } else if (currentMode === '設定') {
+                input.placeholder = '設定';
             }
-            input.placeholder = placeholderText;
         }
 
         function filterPosts(query) {
@@ -633,7 +615,7 @@
         }
 
         function cycleMode() {
-            const modes = ['独り言', 'すべてのsays', '設定'];
+            const modes = ['すべてのsays', '設定'];
             const currentIndex = modes.indexOf(currentMode);
             currentMode = modes[(currentIndex + 1) % modes.length];
             input.value = '';
@@ -659,11 +641,6 @@
                 input.focus();
                 try {
                     await postContent(content);
-                    if (content.includes('http://') || content.includes('https://')) {
-                        currentMode = 'すべてのsays';
-                    } else {
-                        currentMode = '独り言';
-                    }
                     renderPosts();
                     updatePlaceholder();
                     if (postParam) {
@@ -687,7 +664,12 @@
             if (document.activeElement !== input) {
                 if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
                     e.preventDefault();
-                    const newDate = new Date(currentDateFilter);
+                    const newDate = new Date();
+                    if (!currentDateFilter) {
+                        currentDateFilter = new Date();
+                    } else {
+                        newDate.setTime(currentDateFilter.getTime());
+                    }
                     if (e.key === 'ArrowLeft') {
                         newDate.setDate(newDate.getDate() - 1);
                     } else if (e.key === 'ArrowRight') {
@@ -695,13 +677,31 @@
                     }
                     currentDateFilter = newDate;
                     filterPostsByDate(currentDateFilter);
-                    currentMode = '日付フィルタ';
                 }
             }
         });
 
         postsList.addEventListener('mousedown', async (e) => {
-            if (e.button === 1) e.preventDefault();
+            if (e.button === 2) {
+                e.preventDefault();
+                const postElement = e.target.closest('.post');
+                if (!postElement) return;
+                const postId = postElement.getAttribute('data-id');
+                if (!postId) return;
+                try {
+                    await fetch('/delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: postId }),
+                    });
+                    allPosts = allPosts.filter(p => p.id != postId);
+                    renderPosts();
+                    updatePlaceholder();
+                } catch (err) {
+                    console.error('削除エラー:', err);
+                }
+                return;
+            }
             await handlePostClick(e);
         });
 
@@ -713,26 +713,7 @@
             const postId = postElement.getAttribute('data-id');
             if (!postId) return;
 
-            if (e.detail === 2) {
-                try {
-                    const response = await fetch('/delete', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: postId }),
-                    });
-                    if (response.ok) {
-                        allPosts = allPosts.filter(p => p.id != postId);
-                        renderPosts();
-                        updatePlaceholder();
-                    } else {
-                        alert('削除に失敗しました。');
-                    }
-                } catch (err) {
-                    console.error('削除エラー:', err);
-                    alert('削除エラーが発生しました。');
-                }
-                return;
-            }
+            if (e.detail === 2) return;
 
             if (e.target.tagName === 'A') return;
             if (e.button !== 0) return;
@@ -740,9 +721,10 @@
             const currentPost = allPosts.find(post => post.id == postId);
             if (!currentPost) return;
 
-            if (isSearchMode) {
+            if (isSearchMode || currentDateFilter) {
                 renderPosts();
                 isSearchMode = false;
+                currentDateFilter = null;
                 const allPostElements = document.querySelectorAll('.post');
                 const targetElement = Array.from(allPostElements).find(el => el.getAttribute('data-id') == postId);
                 if (targetElement) {
@@ -797,9 +779,6 @@
         if (postParam) {
             input.value = postParam;
             const event = new KeyboardEvent('keydown', { key: 'Enter' });
-            if (postParam.includes('http://') || postParam.includes('https://')) {
-                currentMode = 'すべてのsays';
-            }
             input.dispatchEvent(event);
         }
 
