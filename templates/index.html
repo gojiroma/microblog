@@ -580,7 +580,6 @@
 
         function downloadCsv() {
             if (postOnlyMode) {
-                alert('投稿専用モードではデータをダウンロードできません。');
                 return;
             }
             const csvHeader = ['タイムスタンプ', 'メモ内容'];
@@ -623,9 +622,18 @@
                 await navigator.clipboard.writeText(clipboardText);
                 await postContent('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★');
                 window.open('https://chat.mistral.ai/memories', '_blank');
+
+                const sendButton = document.getElementById('sendTodayPostsBtnInSettings');
+                if (sendButton) {
+                    sendButton.textContent = '完了しました';
+                    sendButton.style.backgroundColor = '#4CAF50';
+                    setTimeout(() => {
+                        sendButton.textContent = '📤 新しいつぶやきをMemoriesに送信';
+                        sendButton.style.backgroundColor = '';
+                    }, 3000);
+                }
             } catch (err) {
                 console.error('クリップボードへのコピーに失敗しました:', err);
-                alert('クリップボードへのコピーに失敗しました。');
             }
         }
 
@@ -782,20 +790,14 @@
                     }
                 } else {
                     postElement.style.backgroundColor = isHighlighted ? highlightColor : '';
-                    alert('ハイライトの更新に失敗しました。');
                 }
             } catch (error) {
                 console.error('Error updating highlight:', error);
                 postElement.style.backgroundColor = isHighlighted ? highlightColor : '';
-                alert('ハイライトの更新に失敗しました。');
             }
         }
 
         async function deletePostsByDate(date) {
-            if (!confirm(`${date.toLocaleDateString()} のエントリをすべて削除しますか？`)) {
-                return;
-            }
-
             const startOfDay = new Date(date);
             startOfDay.setHours(0, 0, 0, 0);
             const endOfDay = new Date(date);
@@ -807,7 +809,6 @@
             });
 
             if (postsToDelete.length === 0) {
-                alert('削除対象のエントリがありません。');
                 return;
             }
 
@@ -820,10 +821,18 @@
                     });
                 }
                 await fetchAllPosts();
-                alert(`${postsToDelete.length}件のエントリを削除しました。`);
+
+                const deleteButton = document.querySelector('.copy-filtered-button[style*="background-color: #ff6b6b"]');
+                if (deleteButton) {
+                    deleteButton.textContent = '完了しました';
+                    deleteButton.style.backgroundColor = '#4CAF50';
+                    setTimeout(() => {
+                        deleteButton.textContent = 'この日のエントリをすべて削除';
+                        deleteButton.style.backgroundColor = '#ff6b6b';
+                    }, 3000);
+                }
             } catch (err) {
                 console.error('削除エラー:', err);
-                alert('削除中にエラーが発生しました。');
             }
         }
 
