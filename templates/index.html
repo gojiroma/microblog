@@ -429,6 +429,15 @@
                 copyButton.textContent = 'フィルターした投稿をコピー';
                 copyButton.addEventListener('click', () => copyFilteredPosts(filteredPosts, copyButton));
                 postsList.appendChild(copyButton);
+
+                if (currentDateFilter) {
+                    const deleteButton = document.createElement('button');
+                    deleteButton.className = 'copy-filtered-button';
+                    deleteButton.textContent = 'この日のエントリをすべて削除';
+                    deleteButton.style.backgroundColor = '#ff6b6b';
+                    deleteButton.addEventListener('click', () => deletePostsByDate(currentDateFilter));
+                    postsList.appendChild(deleteButton);
+                }
             }
         }
 
@@ -779,6 +788,42 @@
                 console.error('Error updating highlight:', error);
                 postElement.style.backgroundColor = isHighlighted ? highlightColor : '';
                 alert('ハイライトの更新に失敗しました。');
+            }
+        }
+
+        async function deletePostsByDate(date) {
+            if (!confirm(`${date.toLocaleDateString()} のエントリをすべて削除しますか？`)) {
+                return;
+            }
+
+            const startOfDay = new Date(date);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(date);
+            endOfDay.setHours(23, 59, 59, 999);
+
+            const postsToDelete = allPosts.filter(post => {
+                const postDate = new Date(post.created_at);
+                return postDate >= startOfDay && postDate <= endOfDay;
+            });
+
+            if (postsToDelete.length === 0) {
+                alert('削除対象のエントリがありません。');
+                return;
+            }
+
+            try {
+                for (const post of postsToDelete) {
+                    await fetch('/delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: post.id }),
+                    });
+                }
+                await fetchAllPosts();
+                alert(`${postsToDelete.length}件のエントリを削除しました。`);
+            } catch (err) {
+                console.error('削除エラー:', err);
+                alert('削除中にエラーが発生しました。');
             }
         }
 
