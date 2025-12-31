@@ -84,21 +84,8 @@
             word-wrap: break-word;
         }
 
-        .post.fade-out {
-            opacity: 0;
-            height: 0;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
-
         .post:hover {
             transform: scale(1.01);
-        }
-
-        .post.highlight {
-            font-weight: bold;
-            background-color: var(--highlight-color);
         }
 
         .post:hover::after {
@@ -108,30 +95,6 @@
             top: 5px;
             font-size: 12px;
             color: #aaa;
-        }
-
-        .settings-container {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin: 20px 0;
-        }
-
-        .settings-button {
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            background-color: var(--button-bg-color);
-            color: var(--text-color);
-            cursor: pointer;
-            font-size: 16px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .settings-button:hover {
-            transform: scale(var(--hover-scale));
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
         .copy-filtered-button {
@@ -201,6 +164,9 @@
         <input type="text" id="post-input" placeholder="" autocomplete="off">
     </div>
     <ul id="posts"></ul>
+    <a id="shareUrl"></a>
+    <div id="qrcode"></div>
+    <button id="copyAndDeleteAllBtn" class="copy-filtered-button">すべてのつぶやきをクリップボードにコピーしてから削除</button>
 
     <script>
         const lightPastelColors = [
@@ -283,16 +249,13 @@
 
         const input = document.getElementById('post-input');
         const postsList = document.getElementById('posts');
-        const shareUrlElement = document.createElement('a');
-        shareUrlElement.id = 'shareUrl';
-        const qrcodeElement = document.createElement('div');
-        qrcodeElement.id = 'qrcode';
+        const shareUrlElement = document.getElementById('shareUrl');
+        const qrcodeElement = document.getElementById('qrcode');
+        const copyAndDeleteAllBtn = document.getElementById('copyAndDeleteAllBtn');
 
         let allPosts = [];
         let isPosting = false;
         let isSearchMode = false;
-        let currentMode = 'すべてのsays';
-        let currentDateFilter = null;
 
         function getTokenFromCookie() {
             const urlToken = urlParams.get('token');
@@ -362,31 +325,7 @@
         }
 
         function renderPosts(filteredPosts = null) {
-            let postsToRender = [];
-            if (filteredPosts) {
-                postsToRender = filteredPosts;
-            } else {
-                switch (currentMode) {
-                    case 'すべてのsays':
-                        postsToRender = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
-                        break;
-                    case '設定':
-                        postsList.innerHTML = `
-                            <div class="settings-container">
-                                <button id="sendTodayPostsBtnInSettings" class="settings-button">📤 新しいつぶやきをMemoriesに送信</button>
-                                <button id="downloadCsvBtnInSettings" class="settings-button">📥 データをダウンロード</button>
-                                <button id="statsBtnInSettings" class="settings-button">📈 統計を表示</button>
-                                ${shareUrlElement.outerHTML}
-                                ${qrcodeElement.outerHTML}
-                            </div>
-                        `;
-                        document.getElementById('sendTodayPostsBtnInSettings').addEventListener('click', sendNewPostsToMemories);
-                        document.getElementById('downloadCsvBtnInSettings').addEventListener('click', downloadCsv);
-                        document.getElementById('statsBtnInSettings').addEventListener('click', goToStats);
-                        showUrlWithToken();
-                        return;
-                }
-            }
+            let postsToRender = filteredPosts || allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
 
             postsList.innerHTML = postsToRender.map(post => {
                 let content = post.content;
@@ -408,12 +347,10 @@
                         <img src="${getThumbnailUrl(decodedUrl)}" alt="サムネイル" class="post-thumbnail" onerror="this.style.display='none'; this.parentNode.innerHTML='<a href=&quot;${escapedUrl}&quot; target=&quot;_blank&quot;>${escapedDecodedUrl}</a>'; reportThumbnailError(${post.id});">
                     </a>`;
                 });
-                const highlightColor = post.is_highlight ? post.highlight_color || getRandomHighlightColor() : '';
                 return `
-                    <li class="post ${post.is_highlight ? 'highlight' : ''}"
+                    <li class="post"
                         data-time="${new Date(post.created_at).toLocaleString()}"
-                        data-id="${post.id}"
-                        style="${post.is_highlight ? `background-color: ${highlightColor};` : ''}">
+                        data-id="${post.id}">
                         ${content}
                     </li>
                 `;
@@ -422,43 +359,11 @@
             if (isSearchMode && filteredPosts && filteredPosts.length === 1 && (filteredPosts[0].content.startsWith('http://') || filteredPosts[0].content.startsWith('https://'))) {
                 window.open(filteredPosts[0].content, '_blank');
             }
-
-            if ((isSearchMode || currentDateFilter) && filteredPosts && filteredPosts.length > 0) {
-                const copyButton = document.createElement('button');
-                copyButton.className = 'copy-filtered-button';
-                copyButton.textContent = 'フィルターした投稿をコピー';
-                copyButton.addEventListener('click', () => copyFilteredPosts(filteredPosts, copyButton));
-                postsList.appendChild(copyButton);
-
-                if (currentDateFilter) {
-                    const deleteButton = document.createElement('button');
-                    deleteButton.className = 'copy-filtered-button';
-                    deleteButton.textContent = 'この日のエントリをすべて削除';
-                    deleteButton.style.backgroundColor = '#ff6b6b';
-                    deleteButton.addEventListener('click', () => deletePostsByDate(currentDateFilter));
-                    postsList.appendChild(deleteButton);
-                }
-            }
-        }
-
-        function getRandomHighlightColor() {
-            const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const pastelColors = isDarkMode ? darkPastelColors : lightPastelColors;
-            const shuffledColors = shuffleArray([...pastelColors]);
-            return shuffledColors[0];
         }
 
         function updatePlaceholder() {
-            if (currentDateFilter) {
-                const date = new Date(currentDateFilter);
-                const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
-                input.placeholder = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 (${dayOfWeek})`;
-            } else if (currentMode === 'すべてのsays') {
-                const count = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')).length;
-                input.placeholder = `${count} says`;
-            } else if (currentMode === '設定') {
-                input.placeholder = '設定';
-            }
+            const count = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')).length;
+            input.placeholder = `${count} says`;
         }
 
         function filterPosts(query) {
@@ -526,40 +431,6 @@
             renderPosts(filtered);
         }
 
-        function filterPostsByDate(date) {
-            currentDateFilter = date;
-            const startOfDay = new Date(date);
-            startOfDay.setHours(0, 0, 0, 0);
-            const endOfDay = new Date(date);
-            endOfDay.setHours(23, 59, 59, 999);
-
-            const filtered = allPosts.filter(post => {
-                const postDate = new Date(post.created_at);
-                return postDate >= startOfDay && postDate <= endOfDay && !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★');
-            });
-
-            renderPosts(filtered);
-            updatePlaceholder();
-        }
-
-        function copyFilteredPosts(filteredPosts, button) {
-            const formattedPosts = filteredPosts.map(post => {
-                const date = new Date(post.created_at);
-                const formattedDate = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
-                return `${formattedDate}：${post.content}`;
-            }).join('\n');
-
-            navigator.clipboard.writeText(formattedPosts)
-                .then(() => {
-                    const originalText = button.textContent;
-                    button.textContent = 'コピーしました';
-                    setTimeout(() => {
-                        button.textContent = originalText;
-                    }, 3000);
-                })
-                .catch(err => console.error('コピーに失敗しました:', err));
-        }
-
         async function postContent(content) {
             await fetch('/post', {
                 method: 'POST',
@@ -578,72 +449,31 @@
             qrcodeElement.innerHTML = `<img src="https://idy.vercel.app/q/${encodeURIComponent(url)}" alt="QRコード">`;
         }
 
-        function downloadCsv() {
-            if (postOnlyMode) {
-                return;
-            }
-            const csvHeader = ['タイムスタンプ', 'メモ内容'];
-            const csvRows = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')).map(post =>
-                `"${new Date(post.created_at).toLocaleString()}",${post.content.replace(/"/g, '""')}`
-            );
-            const csvContent = [csvHeader.join(','), ...csvRows].join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'microblog_export.csv';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        function goToStats() {
-            window.location.href = '/stats';
-        }
-
-        async function sendNewPostsToMemories() {
-            const lastMemoryMarkerIndex = allPosts.findIndex(post => post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
-            let postsToSend;
-            if (lastMemoryMarkerIndex === -1) {
-                postsToSend = allPosts.filter(post => !(post.content.startsWith('http://') || post.content.startsWith('https://') || post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')));
-            } else {
-                postsToSend = allPosts.slice(0, lastMemoryMarkerIndex).filter(post => !(post.content.startsWith('http://') || post.content.startsWith('https://') || post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★')));
-            }
-
-            if (postsToSend.length === 0) return;
-
-            const clipboardText = postsToSend.map(post => {
+        async function copyAndDeleteAllPosts() {
+            const postsToCopy = allPosts.filter(post => !post.content.includes('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★'));
+            const formattedPosts = postsToCopy.map(post => {
                 const date = new Date(post.created_at);
                 const formattedDate = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
                 return `${formattedDate}：${post.content}`;
             }).join('\n');
 
             try {
-                await navigator.clipboard.writeText(clipboardText);
-                await postContent('★★★★★★ここまでlechatのmemoryに取り込んだ★★★★★★');
-                window.open('https://chat.mistral.ai/memories', '_blank');
-
-                const sendButton = document.getElementById('sendTodayPostsBtnInSettings');
-                if (sendButton) {
-                    sendButton.textContent = '完了しました';
-                    sendButton.style.backgroundColor = '#4CAF50';
-                    setTimeout(() => {
-                        sendButton.textContent = '📤 新しいつぶやきをMemoriesに送信';
-                        sendButton.style.backgroundColor = '';
-                    }, 3000);
+                await navigator.clipboard.writeText(formattedPosts);
+                for (const post of postsToCopy) {
+                    await fetch('/delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: post.id }),
+                    });
                 }
+                await fetchAllPosts();
+                copyAndDeleteAllBtn.textContent = '完了しました';
+                setTimeout(() => {
+                    copyAndDeleteAllBtn.textContent = 'すべてのつぶやきをクリップボードにコピーしてから削除';
+                }, 3000);
             } catch (err) {
-                console.error('クリップボードへのコピーに失敗しました:', err);
+                console.error('コピーまたは削除に失敗しました:', err);
             }
-        }
-
-        function cycleMode() {
-            const modes = ['すべてのsays', '設定'];
-            const currentIndex = modes.indexOf(currentMode);
-            currentMode = modes[(currentIndex + 1) % modes.length];
-            input.value = '';
-            renderPosts();
-            updatePlaceholder();
         }
 
         input.addEventListener('input', (e) => filterPosts(e.target.value));
@@ -679,162 +509,7 @@
             }
         });
 
-        input.addEventListener('click', () => {
-            cycleMode();
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (document.activeElement !== input) {
-                if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-                    e.preventDefault();
-                    const newDate = new Date();
-                    if (!currentDateFilter) {
-                        currentDateFilter = new Date();
-                    } else {
-                        newDate.setTime(currentDateFilter.getTime());
-                    }
-                    if (e.key === 'ArrowLeft') {
-                        newDate.setDate(newDate.getDate() - 1);
-                    } else if (e.key === 'ArrowRight') {
-                        newDate.setDate(newDate.getDate() + 1);
-                    }
-                    currentDateFilter = newDate;
-                    filterPostsByDate(currentDateFilter);
-                }
-            }
-        });
-
-        postsList.addEventListener('mousedown', async (e) => {
-            if (e.button === 2) {
-                e.preventDefault();
-                const postElement = e.target.closest('.post');
-                if (!postElement) return;
-                const postId = postElement.getAttribute('data-id');
-                if (!postId) return;
-                try {
-                    await fetch('/delete', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: postId }),
-                    });
-                    allPosts = allPosts.filter(p => p.id != postId);
-                    renderPosts();
-                    updatePlaceholder();
-                } catch (err) {
-                    console.error('削除エラー:', err);
-                }
-                return;
-            }
-            await handlePostClick(e);
-        });
-
-        async function handlePostClick(e) {
-            if (e.target.closest('a') && e.button === 0) return;
-            const postElement = e.target.closest('.post');
-            if (!postElement) return;
-
-            const postId = postElement.getAttribute('data-id');
-            if (!postId) return;
-
-            if (e.detail === 2) return;
-
-            if (e.target.tagName === 'A') return;
-            if (e.button !== 0) return;
-
-            const currentPost = allPosts.find(post => post.id == postId);
-            if (!currentPost) return;
-
-            if (isSearchMode || currentDateFilter) {
-                renderPosts();
-                isSearchMode = false;
-                currentDateFilter = null;
-                const allPostElements = document.querySelectorAll('.post');
-                const targetElement = Array.from(allPostElements).find(el => el.getAttribute('data-id') == postId);
-                if (targetElement) {
-                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    targetElement.classList.add('highlight');
-                    setTimeout(() => {
-                        targetElement.classList.remove('highlight');
-                    }, 2000);
-                }
-                return;
-            }
-
-            const isHighlighted = currentPost.is_highlight;
-            const willBeHighlighted = !isHighlighted;
-            if (willBeHighlighted) {
-                const utterance = new SpeechSynthesisUtterance(currentPost.content);
-                window.speechSynthesis.speak(utterance);
-            }
-            const highlightColor = getRandomHighlightColor();
-            postElement.style.backgroundColor = willBeHighlighted ? highlightColor : '';
-            try {
-                await navigator.clipboard.writeText(currentPost.content);
-            } catch (err) {
-                console.error('Failed to copy:', err);
-            }
-            try {
-                const response = await fetch('/highlight', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: postId, is_highlight: willBeHighlighted, highlight_color: highlightColor }),
-                });
-                if (response.ok) {
-                    currentPost.is_highlight = willBeHighlighted;
-                    currentPost.highlight_color = highlightColor;
-                    if (!willBeHighlighted) {
-                        postElement.classList.add('fade-out');
-                        setTimeout(() => {
-                            renderPosts();
-                        }, 500);
-                    }
-                } else {
-                    postElement.style.backgroundColor = isHighlighted ? highlightColor : '';
-                }
-            } catch (error) {
-                console.error('Error updating highlight:', error);
-                postElement.style.backgroundColor = isHighlighted ? highlightColor : '';
-            }
-        }
-
-        async function deletePostsByDate(date) {
-            const startOfDay = new Date(date);
-            startOfDay.setHours(0, 0, 0, 0);
-            const endOfDay = new Date(date);
-            endOfDay.setHours(23, 59, 59, 999);
-
-            const postsToDelete = allPosts.filter(post => {
-                const postDate = new Date(post.created_at);
-                return postDate >= startOfDay && postDate <= endOfDay;
-            });
-
-            if (postsToDelete.length === 0) {
-                return;
-            }
-
-            try {
-                for (const post of postsToDelete) {
-                    await fetch('/delete', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: post.id }),
-                    });
-                }
-                await fetchAllPosts();
-
-                const deleteButton = document.querySelector('.copy-filtered-button[style*="background-color: #ff6b6b"]');
-                if (deleteButton) {
-                    deleteButton.textContent = '完了しました';
-                    deleteButton.style.backgroundColor = '#4CAF50';
-                    setTimeout(() => {
-                        deleteButton.textContent = 'この日のエントリをすべて削除';
-                        deleteButton.style.backgroundColor = '#ff6b6b';
-                    }, 3000);
-                }
-            } catch (err) {
-                console.error('削除エラー:', err);
-            }
-        }
+        copyAndDeleteAllBtn.addEventListener('click', copyAndDeleteAllPosts);
 
         if (postParam) {
             input.value = postParam;
@@ -854,6 +529,7 @@
             if (!postOnlyMode) fetchAllPosts();
             input.focus();
             startClipboardMonitoring();
+            showUrlWithToken();
         });
     </script>
 </body>
