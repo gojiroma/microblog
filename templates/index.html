@@ -356,9 +356,6 @@
                 `;
             }).join('');
 
-            if (isSearchMode && filteredPosts && filteredPosts.length === 1 && (filteredPosts[0].content.startsWith('http://') || filteredPosts[0].content.startsWith('https://'))) {
-                window.open(filteredPosts[0].content, '_blank');
-            }
         }
 
         function updatePlaceholder() {
